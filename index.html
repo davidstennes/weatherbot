@@ -92,17 +92,21 @@
     <!-- San Diego -->
     <div class="card">
       <h2>San Diego</h2>
-      <div class="subtext">At Chuze Fitness — where Sandi dares to tread</div>
+      <div class="subtext" style="font-size: 1.15em; font-weight: 600;">
+  At Chuze Fitness — where Sandi dares to tread
+</div>
+
       <div id="sandiego" class="temp">Loading…</div>
       <div class="label">High / Low (°F)</div>
     </div>
 
-    <!-- Flagstaff -->
+    <!-- Holtville -->
     <div class="card">
-      <h2>Flagstaff</h2>
-      <div id="flagstaff" class="temp">Loading…</div>
-      <div class="label">High / Low (°F)</div>
-    </div>
+  <h2>Holtville Hot Springs</h2>
+  <div class="subtext">Imperial Valley desert soak country</div>
+  <div id="holtville" class="temp">Loading…</div>
+  <div class="label">High / Low (°F)</div>
+</div>
 
   </div>
 
@@ -134,7 +138,8 @@ async function loadWeather(name, lat, lon, elId) {
 
 Promise.all([
   loadWeather("San Diego", 32.7157, -117.1611, "sandiego"),
-  loadWeather("Flagstaff", 35.20, -111.65, "flagstaff")
+  loadWeather("Holtville", 32.81, -115.38, "holtville")
+
 ]).then(([a, b]) => {
   const scoreA = a.hi + a.lo;
   const scoreB = b.hi + b.lo;
