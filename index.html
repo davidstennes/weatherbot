@@ -1,12 +1,102 @@
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>WeatherBot</title>
-  </head>
-  <body>
-    <h1>WeatherBot test2</h1>
-    <p>GitHub Pages is live.</p>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Where Is the Weather Better: Holtville or Flagstaff?</title>
+
+  <meta name="description"
+        content="Compare today's weather in Holtville Hot Springs and Flagstaff. See which place has better weather right now." />
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f7f7f7;
+    }
+    h1 {
+      font-size: 1.4rem;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .card {
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    }
+    .temp {
+      font-size: 2rem;
+      font-weight: bold;
+    }
+    .label {
+      color: #666;
+    }
+    .winner {
+      margin-top: 20px;
+      padding: 12px;
+      background: #e6f3ff;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Where is the weather better today?</h1>
+<p>Quick comparison of daily high and low temperatures.</p>
+
+<div class="cards">
+  <div class="card">
+    <h2>Holtville Hot Springs</h2>
+    <div id="holtville" class="temp">Loading…</div>
+    <div class="label">High / Low (°F)</div>
+  </div>
+
+  <div class="card">
+    <h2>Flagstaff</h2>
+    <div id="flagstaff" class="temp">Loading…</div>
+    <div class="label">High / Low (°F)</div>
+  </div>
+</div>
+
+<div id="winner" class="winner">Checking…</div>
+
+<script>
+async function loadWeather(name, lat, lon, elId) {
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&daily=temperature_2m_max,temperature_2m_min` +
+    `&temperature_unit=fahrenheit&timezone=auto`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+
+  const hi = Math.round(data.daily.temperature_2m_max[0]);
+  const lo = Math.round(data.daily.temperature_2m_min[0]);
+
+  document.getElementById(elId).textContent = `${hi}° / ${lo}°`;
+
+  return { name, hi, lo };
+}
+
+Promise.all([
+  loadWeather("Holtville", 32.81, -115.38, "holtville"),
+  loadWeather("Flagstaff", 35.20, -111.65, "flagstaff")
+]).then(([a, b]) => {
+  const winner =
+    a.hi + a.lo > b.hi + b.lo ? a.name : b.name;
+
+  document.getElementById("winner").textContent =
+    `Better weather today: ${winner}`;
+});
+</script>
+
+</body>
 </html>
