@@ -4,135 +4,118 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <title>WeatherBot — Compare Two Cities (7-Day)</title>
+  <title>WeatherBot — Compare Two Locations (7-Day)</title>
   <meta name="description" content="Compare 7-day highs and lows between two locations." />
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f7f7f7; color: #111; }
-    h1 { margin: 0 0 6px 0; font-size: 1.35rem; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f7f7f7; }
+    h1 { margin: 0 0 6px 0; }
     p { margin: 0 0 12px 0; color: #555; }
 
-    .panel { background: #fff; padding: 14px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-    .row { display: grid; grid-template-columns: 1fr; gap: 10px; }
-    @media (min-width: 780px) { .row { grid-template-columns: 1fr 1fr auto; align-items: end; } }
+    .panel, .card, .chartWrap {
+      background: #fff;
+      padding: 16px;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
 
-    label { display: block; font-weight: 650; margin-bottom: 6px; }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    @media (min-width: 780px) {
+      .row { grid-template-columns: 1fr 1fr auto; align-items: end; }
+    }
+
+    label { font-weight: 600; }
     input {
       width: 100%;
-      padding: 10px 12px;
+      padding: 10px;
       border-radius: 10px;
-      border: 1px solid #ddd;
+      border: 1px solid #ccc;
       font-size: 1rem;
-      background: #fff;
     }
 
     button {
       padding: 10px 14px;
       border-radius: 10px;
-      border: 0;
-      font-weight: 650;
+      border: none;
       background: #0077cc;
-      color: white;
+      color: #fff;
+      font-weight: 600;
       cursor: pointer;
-      white-space: nowrap;
     }
-    button:hover { opacity: 0.92; }
+    button:hover { opacity: .9; }
 
-    .help { margin-top: 8px; font-size: 0.9rem; color: #666; }
-    .status { margin-top: 10px; font-weight: 650; color: #333; }
-
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 14px; }
-    .card { background: #fff; padding: 16px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-    .temp { font-size: 2rem; font-weight: 800; margin-top: 6px; }
-    .small { color: #666; margin-top: 4px; font-size: 0.9rem; line-height: 1.25; }
-
-    .winner { margin-top: 14px; padding: 14px; background: #e6f3ff; border-radius: 12px; font-weight: 700; text-align: center; }
-
-    .chartWrap { background: #fff; padding: 16px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-top: 16px; }
-    .chartTitle { font-weight: 800; margin: 0 0 10px 0; }
-    .note { margin-top: 10px; color: #666; font-size: 0.9rem; }
-
-    .actions { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
-
-    .pill {
-      display: inline-block;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: #f1f1f1;
-      color: #444;
-      font-size: 0.85rem;
-      font-weight: 650;
-      margin-top: 8px;
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+      gap: 16px;
+      margin-top: 14px;
     }
+
+    .temp { font-size: 2rem; font-weight: 800; }
+    .small { font-size: .9rem; color: #666; }
+
+    .winner {
+      margin-top: 14px;
+      padding: 14px;
+      background: #e6f3ff;
+      border-radius: 12px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .chartWrap { margin-top: 16px; }
+
+    .actions { margin-top: 10px; display: flex; gap: 10px; }
+
   </style>
 </head>
 
 <body>
 
-<!-- ================= MAIN VIEW ================= -->
+<!-- ===== MAIN VIEW ===== -->
 <div id="mainView">
 
-  <h1>WeatherBot — compare two places</h1>
-  <p>7-day highs & lows on one chart. Type two locations and hit Compare.</p>
+  <h1>WeatherBot</h1>
+  <p>Compare 7-day highs and lows for any two locations.</p>
 
   <div class="panel">
     <div class="row">
       <div>
-        <label for="locA">Location A</label>
-        <input id="locA" list="cityList" placeholder="e.g., San Diego" value="San Diego">
+        <label>Location A</label>
+        <input id="locA" value="San Diego">
       </div>
-
       <div>
-        <label for="locB">Location B</label>
-        <input id="locB" list="cityList" placeholder="e.g., Flagstaff" value="Flagstaff">
+        <label>Location B</label>
+        <input id="locB" value="Flagstaff">
       </div>
-
       <div>
-        <button id="compareBtn" onclick="compare()">Compare</button>
+        <button onclick="compare()">Compare</button>
       </div>
     </div>
-
-    <!-- Local lookup suggestions (autocomplete only) -->
-    <datalist id="cityList">
-      <option value="San Diego"></option>
-      <option value="Flagstaff"></option>
-      <option value="Holtville"></option>
-      <option value="Holtville Hot Springs"></option>
-      <option value="Palm Springs"></option>
-      <option value="Phoenix"></option>
-      <option value="Las Vegas"></option>
-      <option value="Los Angeles"></option>
-      <option value="Tucson"></option>
-      <option value="Yuma"></option>
-    </datalist>
-
-    <div class="help">
-      Autocomplete is local. WeatherBot will “echo” what it resolved to (region/country + coordinates).
-    </div>
-    <div id="status" class="status"></div>
+    <div id="status" class="small"></div>
   </div>
 
   <div class="cards">
     <div class="card">
-      <h2 id="aTitle">Location A</h2>
-      <div id="aEcho" class="small">—</div>
+      <h3 id="aTitle">—</h3>
+      <div id="aEcho" class="small"></div>
       <div id="aToday" class="temp">—</div>
-      <div class="small">Today high / low (°F)</div>
-      <div id="aTag" class="pill" style="display:none;"></div>
     </div>
 
     <div class="card">
-      <h2 id="bTitle">Location B</h2>
-      <div id="bEcho" class="small">—</div>
+      <h3 id="bTitle">—</h3>
+      <div id="bEcho" class="small"></div>
       <div id="bToday" class="temp">—</div>
-      <div class="small">Today high / low (°F)</div>
-      <div id="bTag" class="pill" style="display:none;"></div>
     </div>
   </div>
 
-  <div id="winner" class="winner">Enter two locations, then Compare.</div>
+  <div id="winner" class="winner">Enter two locations.</div>
 
   <div class="actions">
     <button onclick="showChart()">Expand chart</button>
@@ -140,209 +123,127 @@
 
 </div>
 
-<!-- ================= CHART VIEW ================= -->
+<!-- ===== CHART VIEW ===== -->
 <div id="chartView" style="display:none;">
   <button onclick="showMain()">← Back</button>
 
   <div class="chartWrap">
-    <div id="chartTitle" class="chartTitle">7-Day Highs & Lows</div>
-    <canvas id="comboChart" height="240"></canvas>
-    <div class="note">Color = location • Solid = high • Dashed = low</div>
+    <h3 id="chartTitle"></h3>
+    <canvas id="comboChart" height="260"></canvas>
+    <p class="small">Color = location · Solid = high · Dashed = low</p>
   </div>
 </div>
 
 <script>
-  // ---------- UI view toggles ----------
   function showChart() {
-    document.getElementById("mainView").style.display = "none";
-    document.getElementById("chartView").style.display = "block";
+    mainView.style.display = "none";
+    chartView.style.display = "block";
   }
   function showMain() {
-    document.getElementById("chartView").style.display = "none";
-    document.getElementById("mainView").style.display = "block";
+    chartView.style.display = "none";
+    mainView.style.display = "block";
   }
 
-  // ---------- Helpers ----------
-  function fmt(n) { return (Math.round(n * 10000) / 10000).toString(); }
-  function dayLabel(isoDate) {
-    const d = new Date(isoDate + "T00:00:00");
-    return d.toLocaleDateString([], { weekday: "short" });
-  }
-  function avg(arr) { return arr.reduce((a,b)=>a+b,0) / arr.length; }
-
-  // ---------- Geocoding: text -> {name, admin, country, lat, lon} ----------
-  async function geocode(query) {
-    const q = query.trim();
-    if (!q) throw new Error("Empty location");
-
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Geocoding API error");
-
-    const data = await res.json();
-    if (!data.results || data.results.length === 0) {
-      throw new Error(`No match for "${q}"`);
-    }
-
-    const r = data.results[0];
-    return {
-      name: r.name,
-      admin: r.admin1 || r.admin2 || r.admin3 || "",
-      country: r.country || "",
-      lat: r.latitude,
-      lon: r.longitude
-    };
+  async function geocode(name) {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1`;
+    const r = await fetch(url);
+    const j = await r.json();
+    if (!j.results?.length) throw new Error("Location not found");
+    return j.results[0];
   }
 
-  // ---------- Weather: lat/lon -> 7 day highs/lows ----------
   async function get7Day(lat, lon) {
     const url =
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-      `&daily=temperature_2m_max,temperature_2m_min` +
-      `&temperature_unit=fahrenheit&timezone=auto`;
-
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Weather API error");
-
-    const data = await res.json();
+      `&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`;
+    const r = await fetch(url);
+    const j = await r.json();
     return {
-      days: data.daily.time.slice(0,7),
-      hi: data.daily.temperature_2m_max.slice(0,7).map(v => Math.round(v)),
-      lo: data.daily.temperature_2m_min.slice(0,7).map(v => Math.round(v))
+      days: j.daily.time.slice(0,7),
+      hi: j.daily.temperature_2m_max.slice(0,7).map(Math.round),
+      lo: j.daily.temperature_2m_min.slice(0,7).map(Math.round)
     };
   }
 
-  // ---------- Chart ----------
-  let comboChart;
+  let chart;
 
-  function renderCombinedChart(labels, aName, aData, bName, bData) {
-    const ctx = document.getElementById("comboChart").getContext("2d");
-    if (comboChart) comboChart.destroy();
+  function renderChart(labels, aName, aData, bName, bData) {
+    if (chart) chart.destroy();
 
-    // Same color per location; low is dashed.
-    const COLOR_A = "#1f77b4"; // Location A color
-    const COLOR_B = "#ff7f0e"; // Location B color
+    const COLOR_A = "#1f77b4";
+    const COLOR_B = "#ff7f0e";
 
-    comboChart = new Chart(ctx, {
+    chart = new Chart(comboChart, {
       type: "line",
       data: {
         labels,
         datasets: [
-          // Location A
-          {
-            label: `${aName} High`,
-            data: aData.hi,
-            borderColor: COLOR_A,
-            backgroundColor: COLOR_A,
-            borderWidth: 2,
-            pointRadius: 3
-          },
-          {
-            label: `${aName} Low`,
-            data: aData.lo,
-            borderColor: COLOR_A,
-            backgroundColor: COLOR_A,
-            borderWidth: 2,
-            borderDash: [6, 6],
-            pointRadius: 3
-          },
-
-          // Location B
-          {
-            label: `${bName} High`,
-            data: bData.hi,
-            borderColor: COLOR_B,
-            backgroundColor: COLOR_B,
-            borderWidth: 2,
-            pointRadius: 3,
-            pointStyle: "rectRot"
-          },
-          {
-            label: `${bName} Low`,
-            data: bData.lo,
-            borderColor: COLOR_B,
-            backgroundColor: COLOR_B,
-            borderWidth: 2,
-            borderDash: [6, 6],
-            pointRadius: 3,
-            pointStyle: "rectRot"
-          }
+          { label:`${aName} High`, data:aData.hi, borderColor:COLOR_A, borderWidth:2, pointRadius:3 },
+          { label:`${aName} Low`,  data:aData.lo, borderColor:COLOR_A, borderDash:[6,6], borderWidth:2, pointRadius:3 },
+          { label:`${bName} High`, data:bData.hi, borderColor:COLOR_B, borderWidth:2, pointRadius:3, pointStyle:"rectRot" },
+          { label:`${bName} Low`,  data:bData.lo, borderColor:COLOR_B, borderDash:[6,6], borderWidth:2, pointRadius:3, pointStyle:"rectRot" }
         ]
       },
       options: {
-        responsive: true,
-        interaction: { mode: "index", intersect: false },
-        plugins: { legend: { position: "bottom" } },
-        scales: { y: { title: { display: true, text: "°F" } } }
+        interaction: { mode:"index", intersect:false },
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              usePointStyle: true,
+              pointStyle: "line",
+              boxWidth: 30
+            }
+          }
+        },
+        scales: {
+          y: { title:{ display:true, text:"°F" } }
+        }
       }
     });
   }
 
-  // ---------- Winner (simple heuristic) ----------
-  function winnerText(aName, aData, bName, bData) {
-    const aAvg = (avg(aData.hi) + avg(aData.lo)) / 2;
-    const bAvg = (avg(bData.hi) + avg(bData.lo)) / 2;
-
-    if (aAvg > bAvg) return `Better weather this week: ${aName} (warmer overall).`;
-    if (bAvg > aAvg) return `Better weather this week: ${bName} (warmer overall).`;
-    return "It’s basically a tie this week 🤷";
-  }
-
-  // ---------- Echo labeling ----------
-  function echoLine(loc) {
-    const parts = [loc.name];
-    if (loc.admin) parts.push(loc.admin);
-    if (loc.country) parts.push(loc.country);
-    return `${parts.join(", ")} — (${fmt(loc.lat)}, ${fmt(loc.lon)})`;
-  }
-
-  // ---------- Main action ----------
   async function compare() {
-    const btn = document.getElementById("compareBtn");
-    const status = document.getElementById("status");
-    const locAInput = document.getElementById("locA").value;
-    const locBInput = document.getElementById("locB").value;
-
-    status.textContent = "Resolving locations…";
-    btn.disabled = true;
-    btn.textContent = "Working…";
+    status.textContent = "Loading…";
 
     try {
-      const [aLoc, bLoc] = await Promise.all([geocode(locAInput), geocode(locBInput)]);
-
-      document.getElementById("aTitle").textContent = aLoc.name;
-      document.getElementById("bTitle").textContent = bLoc.name;
-      document.getElementById("aEcho").textContent = echoLine(aLoc);
-      document.getElementById("bEcho").textContent = echoLine(bLoc);
-
-      status.textContent = "Fetching 7-day forecast…";
-
-      const [aData, bData] = await Promise.all([
-        get7Day(aLoc.lat, aLoc.lon),
-        get7Day(bLoc.lat, bLoc.lon)
+      const [A, B] = await Promise.all([
+        geocode(locA.value),
+        geocode(locB.value)
       ]);
 
-      document.getElementById("aToday").textContent = `${aData.hi[0]}° / ${aData.lo[0]}°`;
-      document.getElementById("bToday").textContent = `${bData.hi[0]}° / ${bData.lo[0]}°`;
+      aTitle.textContent = A.name;
+      bTitle.textContent = B.name;
+      aEcho.textContent = `${A.admin1||""} ${A.country} (${A.latitude.toFixed(3)}, ${A.longitude.toFixed(3)})`;
+      bEcho.textContent = `${B.admin1||""} ${B.country} (${B.latitude.toFixed(3)}, ${B.longitude.toFixed(3)})`;
 
-      document.getElementById("chartTitle").textContent = `7-Day Highs & Lows — ${aLoc.name} vs ${bLoc.name}`;
+      const [aData, bData] = await Promise.all([
+        get7Day(A.latitude, A.longitude),
+        get7Day(B.latitude, B.longitude)
+      ]);
 
-      const labels = aData.days.map(dayLabel);
-      renderCombinedChart(labels, aLoc.name, aData, bLoc.name, bData);
+      aToday.textContent = `${aData.hi[0]}° / ${aData.lo[0]}°`;
+      bToday.textContent = `${bData.hi[0]}° / ${bData.lo[0]}°`;
 
-      document.getElementById("winner").textContent = winnerText(aLoc.name, aData, bLoc.name, bData);
-      status.textContent = "Done.";
-    } catch (err) {
-      console.error(err);
-      status.textContent = `Error: ${err.message}`;
-      document.getElementById("winner").textContent = "Couldn’t compare those locations. Try a more specific city name.";
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Compare";
+      const labels = aData.days.map(d => new Date(d).toLocaleDateString([], { weekday:"short" }));
+      chartTitle.textContent = `${A.name} vs ${B.name} — 7-Day Forecast`;
+
+      renderChart(labels, A.name, aData, B.name, bData);
+
+      const avgA = (aData.hi.reduce((a,b)=>a+b)+aData.lo.reduce((a,b)=>a+b))/(aData.hi.length*2);
+      const avgB = (bData.hi.reduce((a,b)=>a+b)+bData.lo.reduce((a,b)=>a+b))/(bData.hi.length*2);
+
+      winner.textContent =
+        avgA > avgB ? `Better weather this week: ${A.name}` :
+        avgB > avgA ? `Better weather this week: ${B.name}` :
+        "It’s basically a tie 🤷";
+
+      status.textContent = "";
+    } catch (e) {
+      status.textContent = e.message;
     }
   }
 
-  // Auto-run with defaults
   compare();
 </script>
 
