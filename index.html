@@ -94,12 +94,12 @@
       </div>
     </div>
 
-    <!-- Built-in lookup table (autocomplete suggestions) -->
+    <!-- Local lookup suggestions (autocomplete only) -->
     <datalist id="cityList">
       <option value="San Diego"></option>
       <option value="Flagstaff"></option>
-      <option value="Holtville Hot Springs"></option>
       <option value="Holtville"></option>
+      <option value="Holtville Hot Springs"></option>
       <option value="Palm Springs"></option>
       <option value="Phoenix"></option>
       <option value="Las Vegas"></option>
@@ -109,8 +109,7 @@
     </datalist>
 
     <div class="help">
-      Autocomplete is just a starter list. You can type almost any city/town name.
-      WeatherBot will “echo” what it resolved to (name/region/country + coordinates).
+      Autocomplete is local. WeatherBot will “echo” what it resolved to (region/country + coordinates).
     </div>
     <div id="status" class="status"></div>
   </div>
@@ -148,7 +147,7 @@
   <div class="chartWrap">
     <div id="chartTitle" class="chartTitle">7-Day Highs & Lows</div>
     <canvas id="comboChart" height="240"></canvas>
-    <div class="note">Solid = Highs • Dashed = Lows. Tap/hover points for exact values.</div>
+    <div class="note">Color = location • Solid = high • Dashed = low</div>
   </div>
 </div>
 
@@ -165,12 +164,10 @@
 
   // ---------- Helpers ----------
   function fmt(n) { return (Math.round(n * 10000) / 10000).toString(); }
-
   function dayLabel(isoDate) {
     const d = new Date(isoDate + "T00:00:00");
     return d.toLocaleDateString([], { weekday: "short" });
   }
-
   function avg(arr) { return arr.reduce((a,b)=>a+b,0) / arr.length; }
 
   // ---------- Geocoding: text -> {name, admin, country, lat, lon} ----------
@@ -222,15 +219,54 @@
     const ctx = document.getElementById("comboChart").getContext("2d");
     if (comboChart) comboChart.destroy();
 
+    // Same color per location; low is dashed.
+    const COLOR_A = "#1f77b4"; // Location A color
+    const COLOR_B = "#ff7f0e"; // Location B color
+
     comboChart = new Chart(ctx, {
       type: "line",
       data: {
         labels,
         datasets: [
-          { label: `${aName} High`, data: aData.hi, borderWidth: 2, pointRadius: 3 },
-          { label: `${aName} Low`,  data: aData.lo, borderWidth: 2, borderDash: [6,6], pointRadius: 3 },
-          { label: `${bName} High`, data: bData.hi, borderWidth: 2, pointRadius: 3, pointStyle: "rectRot" },
-          { label: `${bName} Low`,  data: bData.lo, borderWidth: 2, borderDash: [6,6], pointRadius: 3, pointStyle: "rectRot" }
+          // Location A
+          {
+            label: `${aName} High`,
+            data: aData.hi,
+            borderColor: COLOR_A,
+            backgroundColor: COLOR_A,
+            borderWidth: 2,
+            pointRadius: 3
+          },
+          {
+            label: `${aName} Low`,
+            data: aData.lo,
+            borderColor: COLOR_A,
+            backgroundColor: COLOR_A,
+            borderWidth: 2,
+            borderDash: [6, 6],
+            pointRadius: 3
+          },
+
+          // Location B
+          {
+            label: `${bName} High`,
+            data: bData.hi,
+            borderColor: COLOR_B,
+            backgroundColor: COLOR_B,
+            borderWidth: 2,
+            pointRadius: 3,
+            pointStyle: "rectRot"
+          },
+          {
+            label: `${bName} Low`,
+            data: bData.lo,
+            borderColor: COLOR_B,
+            backgroundColor: COLOR_B,
+            borderWidth: 2,
+            borderDash: [6, 6],
+            pointRadius: 3,
+            pointStyle: "rectRot"
+          }
         ]
       },
       options: {
@@ -242,7 +278,7 @@
     });
   }
 
-  // ---------- “Winner” (simple heuristic) ----------
+  // ---------- Winner (simple heuristic) ----------
   function winnerText(aName, aData, bName, bData) {
     const aAvg = (avg(aData.hi) + avg(aData.lo)) / 2;
     const bAvg = (avg(bData.hi) + avg(bData.lo)) / 2;
@@ -272,43 +308,29 @@
     btn.textContent = "Working…";
 
     try {
-      // Geocode both
       const [aLoc, bLoc] = await Promise.all([geocode(locAInput), geocode(locBInput)]);
 
-      // Update titles + echo labels
       document.getElementById("aTitle").textContent = aLoc.name;
       document.getElementById("bTitle").textContent = bLoc.name;
       document.getElementById("aEcho").textContent = echoLine(aLoc);
       document.getElementById("bEcho").textContent = echoLine(bLoc);
 
-      // Optional “tags” area (kept, but can be used for snark later)
-      const aTag = document.getElementById("aTag");
-      const bTag = document.getElementById("bTag");
-      aTag.style.display = "none";
-      bTag.style.display = "none";
-
       status.textContent = "Fetching 7-day forecast…";
 
-      // Weather data
       const [aData, bData] = await Promise.all([
         get7Day(aLoc.lat, aLoc.lon),
         get7Day(bLoc.lat, bLoc.lon)
       ]);
 
-      // Today cards
       document.getElementById("aToday").textContent = `${aData.hi[0]}° / ${aData.lo[0]}°`;
       document.getElementById("bToday").textContent = `${bData.hi[0]}° / ${bData.lo[0]}°`;
 
-      // Chart title
       document.getElementById("chartTitle").textContent = `7-Day Highs & Lows — ${aLoc.name} vs ${bLoc.name}`;
 
-      // Render chart
       const labels = aData.days.map(dayLabel);
       renderCombinedChart(labels, aLoc.name, aData, bLoc.name, bData);
 
-      // Winner
       document.getElementById("winner").textContent = winnerText(aLoc.name, aData, bLoc.name, bData);
-
       status.textContent = "Done.";
     } catch (err) {
       console.error(err);
@@ -320,7 +342,7 @@
     }
   }
 
-  // Auto-run once on load with defaults (San Diego vs Flagstaff)
+  // Auto-run with defaults
   compare();
 </script>
 
