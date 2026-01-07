@@ -4,10 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <title>Where Is the Weather Better: San Diego or Flagstaff?</title>
-
+  <title>WeatherBot — San Diego vs Flagstaff (7-Day High/Low)</title>
   <meta name="description"
-        content="Compare today's weather in San Diego and Flagstaff. See where the weather is better right now." />
+        content="Compare a 7-day forecast (daily highs and lows) for San Diego and Flagstaff with simple charts." />
+
+  <!-- Chart.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body {
@@ -19,12 +21,12 @@
     }
 
     h1 {
-      font-size: 1.4rem;
-      margin-bottom: 6px;
+      font-size: 1.35rem;
+      margin: 0 0 6px 0;
     }
 
     p {
-      margin-top: 0;
+      margin: 0 0 14px 0;
       color: #555;
     }
 
@@ -32,7 +34,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 16px;
-      margin-top: 16px;
+      margin-top: 12px;
     }
 
     .card {
@@ -44,18 +46,20 @@
 
     .card h2 {
       margin: 0 0 6px 0;
-      font-size: 1.2rem;
+      font-size: 1.15rem;
     }
 
     .subtext {
-      font-size: 0.9rem;
-      color: #777;
+      font-size: 1.15em;
+      font-weight: 600;
+      color: #666;
       margin-bottom: 10px;
+      line-height: 1.25;
     }
 
     .temp {
       font-size: 2rem;
-      font-weight: 700;
+      font-weight: 750;
       margin-bottom: 4px;
     }
 
@@ -65,96 +69,209 @@
     }
 
     .winner {
-      margin-top: 20px;
+      margin-top: 18px;
       padding: 14px;
       background: #e6f3ff;
       border-radius: 12px;
-      font-weight: 600;
+      font-weight: 650;
       text-align: center;
     }
 
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .chartWrap {
+      background: #fff;
+      padding: 14px;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .chartTitle {
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      color: #222;
+    }
+
+    .smallNote {
+      font-size: 0.8rem;
+      color: #777;
+      margin-top: 8px;
+    }
+
     footer {
-      margin-top: 28px;
+      margin-top: 22px;
       font-size: 0.75rem;
       color: #888;
       text-align: center;
+    }
+
+    button {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 0;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 10px;
     }
   </style>
 </head>
 
 <body>
-
-  <h1>Where is the weather better today?</h1>
-  <p>Quick daily high / low comparison.</p>
+  <h1>WeatherBot — 7-Day High/Low</h1>
+  <p>San Diego vs Flagstaff. Fast, simple, no drama.</p>
 
   <div class="cards">
-
-    <!-- San Diego -->
     <div class="card">
       <h2>San Diego</h2>
-      <div class="subtext" style="font-size: 1.15em; font-weight: 600;">
-  At Chuze Fitness — where Sandi dares to tread
-</div>
-
-      <div id="sandiego" class="temp">Loading…</div>
-      <div class="label">High / Low (°F)</div>
+      <div class="subtext">At Chuze Fitness — where Sandi dares to tread</div>
+      <div id="sdToday" class="temp">Loading…</div>
+      <div class="label">Today high / low (°F)</div>
     </div>
 
-    <!-- Holtville -->
     <div class="card">
-  <h2>Holtville Hot Springs</h2>
-  <div class="subtext">Imperial Valley desert soak country</div>
-  <div id="holtville" class="temp">Loading…</div>
-  <div class="label">High / Low (°F)</div>
-</div>
-
+      <h2>Flagstaff</h2>
+      <div id="fsToday" class="temp">Loading…</div>
+      <div class="label">Today high / low (°F)</div>
+    </div>
   </div>
 
-  <div id="winner" class="winner">
-    Checking which place wins today…
+  <div id="winner" class="winner">Loading the 7-day matchup…</div>
+
+  <div class="charts">
+    <div class="chartWrap">
+      <div class="chartTitle">7-Day Highs (°F)</div>
+      <canvas id="hiChart" height="140"></canvas>
+      <div class="smallNote">Tip: tap/hover points for exact values.</div>
+    </div>
+
+    <div class="chartWrap">
+      <div class="chartTitle">7-Day Lows (°F)</div>
+      <canvas id="loChart" height="140"></canvas>
+    </div>
   </div>
 
-  <footer>
-    WeatherBot — simple weather comparisons
-  </footer>
+  <footer>WeatherBot — dabble mode</footer>
 
 <script>
-async function loadWeather(name, lat, lon, elId) {
-  const url =
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-    `&daily=temperature_2m_max,temperature_2m_min` +
-    `&temperature_unit=fahrenheit&timezone=auto`;
+  // --- Locations (fixed for now) ---
+  const SD = { name: "San Diego", lat: 32.7157, lon: -117.1611 };
+  const FS = { name: "Flagstaff", lat: 35.20, lon: -111.65 };
 
-  const res = await fetch(url);
-  const data = await res.json();
+  // --- Fetch 7-day daily highs/lows ---
+  async function get7Day(lat, lon) {
+    const url =
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+      `&daily=temperature_2m_max,temperature_2m_min` +
+      `&temperature_unit=fahrenheit&timezone=auto`;
 
-  const hi = Math.round(data.daily.temperature_2m_max[0]);
-  const lo = Math.round(data.daily.temperature_2m_min[0]);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Weather API error");
 
-  document.getElementById(elId).textContent = `${hi}° / ${lo}°`;
+    const data = await res.json();
+    const days = data.daily.time.slice(0, 7);
 
-  return { name, hi, lo };
-}
+    const hi = data.daily.temperature_2m_max.slice(0, 7).map(v => Math.round(v));
+    const lo = data.daily.temperature_2m_min.slice(0, 7).map(v => Math.round(v));
 
-Promise.all([
-  loadWeather("San Diego", 32.7157, -117.1611, "sandiego"),
-  loadWeather("Holtville", 32.81, -115.38, "holtville")
-
-]).then(([a, b]) => {
-  const scoreA = a.hi + a.lo;
-  const scoreB = b.hi + b.lo;
-
-  let verdict;
-  if (scoreA > scoreB) {
-    verdict = `Better weather today: ${a.name}`;
-  } else if (scoreB > scoreA) {
-    verdict = `Better weather today: ${b.name}`;
-  } else {
-    verdict = `It’s a tie today 🤷`;
+    return { days, hi, lo };
   }
 
-  document.getElementById("winner").textContent = verdict;
-});
+  function formatDayLabel(isoDate) {
+    const d = new Date(isoDate + "T00:00:00");
+    return d.toLocaleDateString([], { weekday: "short" });
+  }
+
+  // --- Charts ---
+  let hiChart, loChart;
+
+  function renderLineChart(canvasId, labels, aData, bData, aName, bName, yTitle) {
+    const ctx = document.getElementById(canvasId).getContext("2d");
+
+    // destroy if re-render
+    if (canvasId === "hiChart" && hiChart) hiChart.destroy();
+    if (canvasId === "loChart" && loChart) loChart.destroy();
+
+    const chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          { label: aName, data: aData, tension: 0.25 },
+          { label: bName, data: bData, tension: 0.25 }
+        ]
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "bottom" }
+        },
+        scales: {
+          y: { title: { display: true, text: yTitle } }
+        }
+      }
+    });
+
+    if (canvasId === "hiChart") hiChart = chart;
+    if (canvasId === "loChart") loChart = chart;
+  }
+
+  function setToday(elId, hi, lo) {
+    document.getElementById(elId).textContent = `${hi}° / ${lo}°`;
+  }
+
+  function decideWinner(sd, fs) {
+    // Simple heuristic: higher average temp wins (hi+lo)/2 averaged over 7 days
+    const avg = (arr) => arr.reduce((a,b)=>a+b,0) / arr.length;
+    const sdAvg = (avg(sd.hi) + avg(sd.lo)) / 2;
+    const fsAvg = (avg(fs.hi) + avg(fs.lo)) / 2;
+
+    if (sdAvg > fsAvg) return `${SD.name} wins (warmer overall this week).`;
+    if (fsAvg > sdAvg) return `${FS.name} wins (warmer overall this week).`;
+    return "It’s basically a tie this week 🤷";
+  }
+
+  (async () => {
+    try {
+      const [sd, fs] = await Promise.all([
+        get7Day(SD.lat, SD.lon),
+        get7Day(FS.lat, FS.lon)
+      ]);
+
+      // Today card values (day 0)
+      setToday("sdToday", sd.hi[0], sd.lo[0]);
+      setToday("fsToday", fs.hi[0], fs.lo[0]);
+
+      // Labels
+      const labels = sd.days.map(formatDayLabel);
+
+      // Charts
+      renderLineChart("hiChart", labels, sd.hi, fs.hi, SD.name, FS.name, "High (°F)");
+      renderLineChart("loChart", labels, sd.lo, fs.lo, SD.name, FS.name, "Low (°F)");
+
+      // Winner text
+      document.getElementById("winner").textContent = decideWinner(sd, fs);
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById("winner").textContent =
+        "Couldn’t load the forecast. (Usually a temporary API hiccup or connection issue.)";
+      document.getElementById("sdToday").textContent = "Error";
+      document.getElementById("fsToday").textContent = "Error";
+    }
+  })();
 </script>
 
 </body>
