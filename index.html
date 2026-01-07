@@ -6,7 +6,7 @@
 
   <title>WeatherBot — San Diego vs Flagstaff (7-Day High/Low)</title>
   <meta name="description"
-        content="Compare a 7-day forecast (daily highs and lows) for San Diego and Flagstaff with simple charts." />
+        content="Compare a 7-day forecast (daily highs and lows) for San Diego and Flagstaff on one chart." />
 
   <!-- Chart.js (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -19,16 +19,8 @@
       background: #f7f7f7;
       color: #111;
     }
-
-    h1 {
-      font-size: 1.35rem;
-      margin: 0 0 6px 0;
-    }
-
-    p {
-      margin: 0 0 14px 0;
-      color: #555;
-    }
+    h1 { font-size: 1.35rem; margin: 0 0 6px 0; }
+    p { margin: 0 0 14px 0; color: #555; }
 
     .cards {
       display: grid;
@@ -36,18 +28,13 @@
       gap: 16px;
       margin-top: 12px;
     }
-
     .card {
       background: #fff;
       padding: 16px;
       border-radius: 14px;
       box-shadow: 0 2px 8px rgba(0,0,0,.08);
     }
-
-    .card h2 {
-      margin: 0 0 6px 0;
-      font-size: 1.15rem;
-    }
+    .card h2 { margin: 0 0 6px 0; font-size: 1.15rem; }
 
     .subtext {
       font-size: 1.15em;
@@ -56,17 +43,8 @@
       margin-bottom: 10px;
       line-height: 1.25;
     }
-
-    .temp {
-      font-size: 2rem;
-      font-weight: 750;
-      margin-bottom: 4px;
-    }
-
-    .label {
-      font-size: 0.85rem;
-      color: #666;
-    }
+    .temp { font-size: 2rem; font-weight: 750; margin-bottom: 4px; }
+    .label { font-size: 0.85rem; color: #666; }
 
     .winner {
       margin-top: 18px;
@@ -77,60 +55,22 @@
       text-align: center;
     }
 
-    .charts {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-      margin-top: 16px;
-    }
-
     .chartWrap {
       background: #fff;
       padding: 14px;
       border-radius: 14px;
       box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      margin-top: 16px;
     }
-
-    .chartTitle {
-      font-weight: 700;
-      margin: 0 0 8px 0;
-      color: #222;
-    }
-
-    .smallNote {
-      font-size: 0.8rem;
-      color: #777;
-      margin-top: 8px;
-    }
-
-    footer {
-      margin-top: 22px;
-      font-size: 0.75rem;
-      color: #888;
-      text-align: center;
-    }
-
-    button {
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: 0;
-      font-weight: 650;
-      cursor: pointer;
-    }
-
-    .row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-      margin-top: 10px;
-    }
+    .chartTitle { font-weight: 700; margin: 0 0 8px 0; color: #222; }
+    .smallNote { font-size: 0.8rem; color: #777; margin-top: 8px; }
+    footer { margin-top: 22px; font-size: 0.75rem; color: #888; text-align: center; }
   </style>
 </head>
 
 <body>
   <h1>WeatherBot — 7-Day High/Low</h1>
-  <p>San Diego vs Flagstaff. Fast, simple, no drama.</p>
+  <p>San Diego vs Flagstaff. One chart. Four lines. Zero fluff.</p>
 
   <div class="cards">
     <div class="card">
@@ -149,27 +89,20 @@
 
   <div id="winner" class="winner">Loading the 7-day matchup…</div>
 
-  <div class="charts">
-    <div class="chartWrap">
-      <div class="chartTitle">7-Day Highs (°F)</div>
-      <canvas id="hiChart" height="140"></canvas>
-      <div class="smallNote">Tip: tap/hover points for exact values.</div>
-    </div>
-
-    <div class="chartWrap">
-      <div class="chartTitle">7-Day Lows (°F)</div>
-      <canvas id="loChart" height="140"></canvas>
+  <div class="chartWrap">
+    <div class="chartTitle">7-Day Forecast — Highs & Lows (°F)</div>
+    <canvas id="comboChart" height="170"></canvas>
+    <div class="smallNote">
+      Solid = Highs, Dashed = Lows. Tap/hover points for exact values.
     </div>
   </div>
 
   <footer>WeatherBot — dabble mode</footer>
 
 <script>
-  // --- Locations (fixed for now) ---
   const SD = { name: "San Diego", lat: 32.7157, lon: -117.1611 };
   const FS = { name: "Flagstaff", lat: 35.20, lon: -111.65 };
 
-  // --- Fetch 7-day daily highs/lows ---
   async function get7Day(lat, lon) {
     const url =
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
@@ -193,23 +126,69 @@
     return d.toLocaleDateString([], { weekday: "short" });
   }
 
-  // --- Charts ---
-  let hiChart, loChart;
+  function setToday(elId, hi, lo) {
+    document.getElementById(elId).textContent = `${hi}° / ${lo}°`;
+  }
 
-  function renderLineChart(canvasId, labels, aData, bData, aName, bName, yTitle) {
-    const ctx = document.getElementById(canvasId).getContext("2d");
+  function avg(arr) { return arr.reduce((a,b)=>a+b,0) / arr.length; }
 
-    // destroy if re-render
-    if (canvasId === "hiChart" && hiChart) hiChart.destroy();
-    if (canvasId === "loChart" && loChart) loChart.destroy();
+  function decideWinner(sd, fs) {
+    const sdAvg = (avg(sd.hi) + avg(sd.lo)) / 2;
+    const fsAvg = (avg(fs.hi) + avg(fs.lo)) / 2;
 
-    const chart = new Chart(ctx, {
+    if (sdAvg > fsAvg) return `${SD.name} wins (warmer overall this week).`;
+    if (fsAvg > sdAvg) return `${FS.name} wins (warmer overall this week).`;
+    return "It’s basically a tie this week 🤷";
+  }
+
+  let comboChart;
+
+  function renderCombinedChart(labels, sd, fs) {
+    const ctx = document.getElementById("comboChart").getContext("2d");
+    if (comboChart) comboChart.destroy();
+
+    comboChart = new Chart(ctx, {
       type: "line",
       data: {
         labels,
         datasets: [
-          { label: aName, data: aData, tension: 0.25 },
-          { label: bName, data: bData, tension: 0.25 }
+          // San Diego
+          {
+            label: `${SD.name} High`,
+            data: sd.hi,
+            tension: 0.25,
+            borderWidth: 2,
+            pointRadius: 3,
+            pointStyle: "circle"
+          },
+          {
+            label: `${SD.name} Low`,
+            data: sd.lo,
+            tension: 0.25,
+            borderWidth: 2,
+            borderDash: [6, 6],
+            pointRadius: 3,
+            pointStyle: "circle"
+          },
+
+          // Flagstaff
+          {
+            label: `${FS.name} High`,
+            data: fs.hi,
+            tension: 0.25,
+            borderWidth: 2,
+            pointRadius: 3,
+            pointStyle: "rectRot"
+          },
+          {
+            label: `${FS.name} Low`,
+            data: fs.lo,
+            tension: 0.25,
+            borderWidth: 2,
+            borderDash: [6, 6],
+            pointRadius: 3,
+            pointStyle: "rectRot"
+          }
         ]
       },
       options: {
@@ -219,28 +198,10 @@
           legend: { position: "bottom" }
         },
         scales: {
-          y: { title: { display: true, text: yTitle } }
+          y: { title: { display: true, text: "°F" } }
         }
       }
     });
-
-    if (canvasId === "hiChart") hiChart = chart;
-    if (canvasId === "loChart") loChart = chart;
-  }
-
-  function setToday(elId, hi, lo) {
-    document.getElementById(elId).textContent = `${hi}° / ${lo}°`;
-  }
-
-  function decideWinner(sd, fs) {
-    // Simple heuristic: higher average temp wins (hi+lo)/2 averaged over 7 days
-    const avg = (arr) => arr.reduce((a,b)=>a+b,0) / arr.length;
-    const sdAvg = (avg(sd.hi) + avg(sd.lo)) / 2;
-    const fsAvg = (avg(fs.hi) + avg(fs.lo)) / 2;
-
-    if (sdAvg > fsAvg) return `${SD.name} wins (warmer overall this week).`;
-    if (fsAvg > sdAvg) return `${FS.name} wins (warmer overall this week).`;
-    return "It’s basically a tie this week 🤷";
   }
 
   (async () => {
@@ -250,18 +211,12 @@
         get7Day(FS.lat, FS.lon)
       ]);
 
-      // Today card values (day 0)
       setToday("sdToday", sd.hi[0], sd.lo[0]);
       setToday("fsToday", fs.hi[0], fs.lo[0]);
 
-      // Labels
       const labels = sd.days.map(formatDayLabel);
+      renderCombinedChart(labels, sd, fs);
 
-      // Charts
-      renderLineChart("hiChart", labels, sd.hi, fs.hi, SD.name, FS.name, "High (°F)");
-      renderLineChart("loChart", labels, sd.lo, fs.lo, SD.name, FS.name, "Low (°F)");
-
-      // Winner text
       document.getElementById("winner").textContent = decideWinner(sd, fs);
 
     } catch (err) {
