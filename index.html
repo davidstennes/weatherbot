@@ -1,123 +1,130 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>WeatherBot — Compare Two Locations</title>
 
-  <title>WeatherBot — Compare Two Locations (7-Day)</title>
-  <meta name="description" content="Compare 7-day highs and lows between two locations." />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 16px;
+  background: #f7f7f7;
+}
 
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f7f7f7; }
-    h1 { margin: 0 0 6px 0; }
-    p { margin: 0 0 12px 0; color: #555; }
+.panel, .card, .chartWrap {
+  background: #fff;
+  padding: 16px;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
 
-    .panel, .card, .chartWrap {
-      background: #fff;
-      padding: 16px;
-      border-radius: 14px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.08);
-    }
+.row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+@media (min-width: 780px) {
+  .row { grid-template-columns: 1fr 1fr auto; align-items: end; }
+}
 
-    .row {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    @media (min-width: 780px) {
-      .row { grid-template-columns: 1fr 1fr auto; align-items: end; }
-    }
+input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
 
-    label { font-weight: 600; }
-    input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      font-size: 1rem;
-    }
+button {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: #0077cc;
+  color: white;
+  font-weight: 600;
+}
 
-    button {
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: none;
-      background: #0077cc;
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    button:hover { opacity: .9; }
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
 
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
-      gap: 16px;
-      margin-top: 14px;
-    }
+.temp { font-size: 2rem; font-weight: 800; }
+.small { font-size: .9rem; color: #666; }
 
-    .temp { font-size: 2rem; font-weight: 800; }
-    .small { font-size: .9rem; color: #666; }
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
 
-    .winner {
-      margin-top: 14px;
-      padding: 14px;
-      background: #e6f3ff;
-      border-radius: 12px;
-      font-weight: 700;
-      text-align: center;
-    }
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f4f4f4;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
 
-    .chartWrap { margin-top: 16px; }
-    .actions { margin-top: 10px; display: flex; gap: 10px; }
-  </style>
+.legend-line {
+  width: 64px;
+  height: 0;
+  border-top-width: 3px;
+  border-top-style: solid;
+  position: relative;
+}
+
+.legend-dot {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.legend-dot.diamond {
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+}
+</style>
 </head>
 
 <body>
 
 <div id="mainView">
-
-  <h1>WeatherBot</h1>
-  <p>Compare 7-day highs and lows for any two locations.</p>
+  <h2>WeatherBot</h2>
 
   <div class="panel">
     <div class="row">
-      <div>
-        <label>Location A</label>
-        <input id="locA" value="Ajo">
-      </div>
-      <div>
-        <label>Location B</label>
-        <input id="locB" value="Flagstaff">
-      </div>
-      <div>
-        <button onclick="compare()">Compare</button>
-      </div>
+      <input id="locA" value="Flagstaff">
+      <input id="locB" value="San Diego">
+      <button onclick="compare()">Compare</button>
     </div>
-    <div id="status" class="small"></div>
   </div>
 
   <div class="cards">
     <div class="card">
-      <h3 id="aTitle">—</h3>
-      <div id="aEcho" class="small"></div>
-      <div id="aToday" class="temp">—</div>
+      <h3 id="aTitle"></h3>
+      <div id="aToday" class="temp"></div>
     </div>
-
     <div class="card">
-      <h3 id="bTitle">—</h3>
-      <div id="bEcho" class="small"></div>
-      <div id="bToday" class="temp">—</div>
+      <h3 id="bTitle"></h3>
+      <div id="bToday" class="temp"></div>
     </div>
   </div>
 
-  <div id="winner" class="winner">Enter two locations.</div>
-
-  <div class="actions">
-    <button onclick="showChart()">Expand chart</button>
-  </div>
-
+  <button onclick="showChart()">Expand chart</button>
 </div>
 
 <div id="chartView" style="display:none;">
@@ -126,123 +133,130 @@
   <div class="chartWrap">
     <h3 id="chartTitle"></h3>
     <canvas id="comboChart" height="260"></canvas>
-    <p class="small">Color = location · Solid = high · Dashed = low</p>
+    <div id="htmlLegend" class="legend"></div>
+    <p class="small">Color = location · Solid = high · Dotted = low</p>
   </div>
 </div>
 
 <script>
-  function showChart() {
-    mainView.style.display = "none";
-    chartView.style.display = "block";
-  }
-  function showMain() {
-    chartView.style.display = "none";
-    mainView.style.display = "block";
-  }
+function showChart() {
+  mainView.style.display = "none";
+  chartView.style.display = "block";
+}
+function showMain() {
+  chartView.style.display = "none";
+  mainView.style.display = "block";
+}
 
-  async function geocode(name) {
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1`;
-    const r = await fetch(url);
-    const j = await r.json();
-    if (!j.results?.length) throw new Error("Location not found");
-    return j.results[0];
-  }
+async function geocode(name) {
+  const r = await fetch(
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1`
+  );
+  const j = await r.json();
+  return j.results[0];
+}
 
-  async function get7Day(lat, lon) {
-    const url =
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-      `&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`;
-    const r = await fetch(url);
-    const j = await r.json();
-    return {
-      days: j.daily.time.slice(0,7),
-      hi: j.daily.temperature_2m_max.slice(0,7).map(Math.round),
-      lo: j.daily.temperature_2m_min.slice(0,7).map(Math.round)
-    };
-  }
+async function get7(lat, lon) {
+  const r = await fetch(
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`
+  );
+  const j = await r.json();
+  return {
+    days: j.daily.time.slice(0,7),
+    hi: j.daily.temperature_2m_max.slice(0,7),
+    lo: j.daily.temperature_2m_min.slice(0,7)
+  };
+}
 
-  let chart;
+/* ===== HTML LEGEND PLUGIN (DOTTED LOWS) ===== */
+const htmlLegendPlugin = {
+  id: "htmlLegend",
+  afterUpdate(chart, args, opts) {
+    const el = document.getElementById(opts.containerID);
+    el.innerHTML = "";
 
-  function renderChart(labels, aName, aData, bName, bData) {
-    if (chart) chart.destroy();
+    chart.data.datasets.forEach((ds, i) => {
+      const row = document.createElement("div");
+      row.className = "legend-item";
 
-    const COLOR_A = "#1f77b4";
-    const COLOR_B = "#ff7f0e";
+      const line = document.createElement("div");
+      line.className = "legend-line";
+      line.style.borderTopColor = ds.borderColor;
+      line.style.color = ds.borderColor;
 
-    chart = new Chart(comboChart, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          { label:`${aName} High`, data:aData.hi, borderColor:COLOR_A, borderWidth:2, pointRadius:3 },
-          { label:`${aName} Low`,  data:aData.lo, borderColor:COLOR_A, borderDash:[6,6], borderWidth:2, pointRadius:3 },
-          { label:`${bName} High`, data:bData.hi, borderColor:COLOR_B, borderWidth:2, pointRadius:3, pointStyle:"rectRot" },
-          { label:`${bName} Low`,  data:bData.lo, borderColor:COLOR_B, borderDash:[6,6], borderWidth:2, pointRadius:3, pointStyle:"rectRot" }
-        ]
-      },
-      options: {
-        interaction: { mode:"index", intersect:false },
-        plugins: {
-          legend: {
-            position: "bottom",
-            labels: {
-              usePointStyle: true,
-              pointStyle: "line",
-              boxWidth: 30
-            }
-          }
-        },
-        scales: {
-          y: { title:{ display:true, text:"°F" } }
-        }
+      // 🔵 LOWS = DOTTED
+      if (ds.borderDash) {
+        line.style.borderTopStyle = "dotted";
       }
+
+      const dot = document.createElement("div");
+      dot.className = "legend-dot";
+      if (ds.pointStyle === "rectRot") dot.classList.add("diamond");
+
+      line.appendChild(dot);
+
+      row.appendChild(line);
+      row.appendChild(document.createTextNode(ds.label));
+
+      row.onclick = () => {
+        chart.toggleDataVisibility(i);
+        chart.update();
+      };
+
+      el.appendChild(row);
     });
   }
+};
 
-  async function compare() {
-    status.textContent = "Loading…";
+let chart;
 
-    try {
-      const [A, B] = await Promise.all([
-        geocode(locA.value),
-        geocode(locB.value)
-      ]);
+function draw(labels, A, a, B, b) {
+  if (chart) chart.destroy();
 
-      // 🔎 DEBUG ALERT — THIS IS WHAT YOU’RE ADDING
-      alert(
-        `Resolved locations:\n` +
-        `A: ${A.name} (${A.latitude}, ${A.longitude})\n` +
-        `B: ${B.name} (${B.latitude}, ${B.longitude})`
-      );
+  chart = new Chart(comboChart, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label:`${A} High`, data:a.hi, borderColor:"#1f77b4", borderWidth:3 },
+        { label:`${A} Low`,  data:a.lo, borderColor:"#1f77b4", borderDash:[2,6] },
+        { label:`${B} High`, data:b.hi, borderColor:"#ff7f0e", borderWidth:3, pointStyle:"rectRot" },
+        { label:`${B} Low`,  data:b.lo, borderColor:"#ff7f0e", borderDash:[2,6], pointStyle:"rectRot" }
+      ]
+    },
+    options: {
+      plugins: {
+        legend: { display:false },
+        htmlLegend: { containerID:"htmlLegend" }
+      }
+    },
+    plugins:[htmlLegendPlugin]
+  });
+}
 
-      aTitle.textContent = A.name;
-      bTitle.textContent = B.name;
+async function compare() {
+  const A = await geocode(locA.value);
+  const B = await geocode(locB.value);
 
-      aEcho.textContent = `${A.admin1||""} ${A.country}`;
-      bEcho.textContent = `${B.admin1||""} ${B.country}`;
+  aTitle.textContent = A.name;
+  bTitle.textContent = B.name;
 
-      const [aData, bData] = await Promise.all([
-        get7Day(A.latitude, A.longitude),
-        get7Day(B.latitude, B.longitude)
-      ]);
+  const a = await get7(A.latitude, A.longitude);
+  const b = await get7(B.latitude, B.longitude);
 
-      aToday.textContent = `${aData.hi[0]}° / ${aData.lo[0]}°`;
-      bToday.textContent = `${bData.hi[0]}° / ${bData.lo[0]}°`;
+  aToday.textContent = `${Math.round(a.hi[0])}° / ${Math.round(a.lo[0])}°`;
+  bToday.textContent = `${Math.round(b.hi[0])}° / ${Math.round(b.lo[0])}°`;
 
-      const labels = aData.days.map(d =>
-        new Date(d).toLocaleDateString([], { weekday:"short" })
-      );
+  chartTitle.textContent = `${A.name} vs ${B.name} — 7-Day Forecast`;
 
-      chartTitle.textContent = `${A.name} vs ${B.name} — 7-Day Forecast`;
-      renderChart(labels, A.name, aData, B.name, bData);
+  draw(
+    a.days.map(d => new Date(d).toLocaleDateString([], {weekday:"short"})),
+    A.name, a, B.name, b
+  );
+}
 
-      status.textContent = "";
-    } catch (e) {
-      status.textContent = e.message;
-    }
-  }
-
-  compare();
+compare();
 </script>
 
 </body>
