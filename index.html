@@ -18,8 +18,9 @@
   @media (min-width: 780px) { .row { grid-template-columns: 1fr 1fr auto; align-items: end; } }
 
   label { font-weight: 650; display:block; margin-bottom: 6px; }
-  input {
+  input, select {
     width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; font-size: 1rem;
+    background: #fff;
   }
   button {
     padding: 12px 14px; border-radius: 10px; border: none;
@@ -58,6 +59,12 @@
     border-radius: 2px;
     transform: translateX(-50%) rotate(45deg);
   }
+
+  /* Ambiguity chooser */
+  .chooserWrap { display:none; margin-top: 12px; }
+  .chooserGrid { display:grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 780px) { .chooserGrid { grid-template-columns: 1fr 1fr auto; align-items: end; } }
+  .hint { margin-top: 8px; }
 </style>
 </head>
 
@@ -80,6 +87,25 @@
         <button onclick="compare()">Compare</button>
       </div>
     </div>
+
+    <!-- City ambiguity selectors -->
+    <div id="chooserWrap" class="chooserWrap">
+      <div class="chooserGrid">
+        <div>
+          <label>Pick Location A</label>
+          <select id="pickA"></select>
+        </div>
+        <div>
+          <label>Pick Location B</label>
+          <select id="pickB"></select>
+        </div>
+        <div>
+          <button id="applyPicksBtn" onclick="applyPicks()">Apply picks</button>
+        </div>
+      </div>
+      <div class="small hint">If a city name matches multiple places, pick the exact one here (no default guessing).</div>
+    </div>
+
     <div id="status" class="small"></div>
   </div>
 
@@ -142,14 +168,60 @@ function placeLabel(r) {
 function showChart() { mainView.style.display = "none"; chartView.style.display = "block"; }
 function showMain()  { chartView.style.display = "none"; mainView.style.display = "block"; }
 
-/* ========= Geocode ========= */
-async function geocode(name) {
+/* ========= Geocode (MULTI) ========= */
+async function geocodeMany(name, count=8) {
   const r = await fetch(
-    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=en&format=json`
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=${count}&language=en&format=json`
   );
   const j = await r.json();
   if (!j.results?.length) throw new Error(`Location not found: ${name}`);
-  return j.results[0];
+  return j.results;
+}
+
+/* ========= City ambiguity UI ========= */
+let pendingA = null; // { query, results }
+let pendingB = null;
+
+function fillPick(selectEl, results) {
+  selectEl.innerHTML = "";
+  results.forEach((r, idx) => {
+    const opt = document.createElement("option");
+    opt.value = String(idx);
+    // show extra detail to reduce ambiguity
+    const extra = [];
+    if (r.admin1) extra.push(r.admin1);
+    if (r.country) extra.push(r.country);
+    opt.textContent = `${placeLabel(r)}${extra.length ? " — " + extra.join(", ") : ""} (${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)})`;
+    selectEl.appendChild(opt);
+  });
+}
+
+function showChooserIfNeeded() {
+  const need = (pendingA && pendingA.results.length > 1) || (pendingB && pendingB.results.length > 1);
+  chooserWrap.style.display = need ? "block" : "none";
+
+  // If one side is not ambiguous, still show a 1-item dropdown so Apply can proceed cleanly
+  if (pendingA) fillPick(pickA, pendingA.results);
+  if (pendingB) fillPick(pickB, pendingB.results);
+
+  // If not needed, ensure it’s hidden
+  if (!need) chooserWrap.style.display = "none";
+}
+
+function applyPicks() {
+  if (!pendingA || !pendingB) return;
+
+  const aIdx = parseInt(pickA.value, 10) || 0;
+  const bIdx = parseInt(pickB.value, 10) || 0;
+
+  const A = pendingA.results[aIdx] || pendingA.results[0];
+  const B = pendingB.results[bIdx] || pendingB.results[0];
+
+  chooserWrap.style.display = "none";
+  status.textContent = "";
+
+  // Continue with chosen exact locations
+  compareWithResolved(A, B);
 }
 
 /* ========= Timezone-correct "today" (YYYY-MM-DD) ========= */
@@ -291,51 +363,87 @@ function renderChart(dayLabels, aLabel, aSeries, bLabel, bSeries) {
   });
 }
 
+/* ========= Compare (with ambiguity handling) ========= */
 async function compare() {
   status.textContent = "Loading…";
+
   try {
-    const [A, B] = await Promise.all([ geocode(locA.value), geocode(locB.value) ]);
+    const queryA = locA.value.trim();
+    const queryB = locB.value.trim();
 
-    const ALabel = placeLabel(A);
-    const BLabel = placeLabel(B);
+    if (!queryA) throw new Error("Location A is empty.");
+    if (!queryB) throw new Error("Location B is empty.");
 
-    aTitle.textContent = ALabel;
-    bTitle.textContent = BLabel;
-
-    // Show confirmation echo with coords too
-    aEcho.textContent = `${ALabel} (${A.latitude.toFixed(4)}, ${A.longitude.toFixed(4)})`;
-    bEcho.textContent = `${BLabel} (${B.latitude.toFixed(4)}, ${B.longitude.toFixed(4)})`;
-
-    const [aData, bData] = await Promise.all([
-      get7DayFromToday(A.latitude, A.longitude),
-      get7DayFromToday(B.latitude, B.longitude)
+    // pull multiple candidates for each
+    const [resultsA, resultsB] = await Promise.all([
+      geocodeMany(queryA, 10),
+      geocodeMany(queryB, 10)
     ]);
 
-    // Use A's day list as the chart axis (simple + consistent)
-    const days = aData.days;
+    pendingA = { query: queryA, results: resultsA };
+    pendingB = { query: queryB, results: resultsB };
 
-    const aSeries = { hi: aData.hi, lo: aData.lo };
-    const bSeries = alignToDays(days, bData);
+    const ambA = resultsA.length > 1;
+    const ambB = resultsB.length > 1;
 
-    aToday.textContent = `${aSeries.hi[0]}° / ${aSeries.lo[0]}°`;
-    bToday.textContent = `${bSeries.hi[0] ?? "—"}° / ${bSeries.lo[0] ?? "—"}°`;
+    // If either is ambiguous, show picker and stop until user confirms
+    if (ambA || ambB) {
+      showChooserIfNeeded();
+      status.textContent = "Choose exact locations, then tap “Apply picks”.";
+      return;
+    }
 
-    chartTitle.textContent = `${ALabel} vs ${BLabel} — 7-Day (starting today)`;
+    // Not ambiguous — proceed with the single results
+    chooserWrap.style.display = "none";
+    compareWithResolved(resultsA[0], resultsB[0]);
 
-    const labels = days.map(d => {
-      // show weekday (in user's device locale; fine for labels)
-      const dt = new Date(d + "T12:00:00");
-      return dt.toLocaleDateString([], { weekday: "short" });
-    });
-
-    renderChart(labels, ALabel, aSeries, BLabel, bSeries);
-
-    status.textContent = "";
   } catch (e) {
+    chooserWrap.style.display = "none";
     status.textContent = e.message || String(e);
   }
 }
 
+/* ========= Compare using resolved A/B objects ========= */
+async function compareWithResolved(A, B) {
+  status.textContent = "Loading forecast…";
+
+  const ALabel = placeLabel(A);
+  const BLabel = placeLabel(B);
+
+  aTitle.textContent = ALabel;
+  bTitle.textContent = BLabel;
+
+  // Show confirmation echo with coords too
+  aEcho.textContent = `${ALabel} (${A.latitude.toFixed(4)}, ${A.longitude.toFixed(4)})`;
+  bEcho.textContent = `${BLabel} (${B.latitude.toFixed(4)}, ${B.longitude.toFixed(4)})`;
+
+  const [aData, bData] = await Promise.all([
+    get7DayFromToday(A.latitude, A.longitude),
+    get7DayFromToday(B.latitude, B.longitude)
+  ]);
+
+  // Use A's day list as the chart axis (simple + consistent)
+  const days = aData.days;
+
+  const aSeries = { hi: aData.hi, lo: aData.lo };
+  const bSeries = alignToDays(days, bData);
+
+  aToday.textContent = `${aSeries.hi[0]}° / ${aSeries.lo[0]}°`;
+  bToday.textContent = `${bSeries.hi[0] ?? "—"}° / ${bSeries.lo[0] ?? "—"}°`;
+
+  chartTitle.textContent = `${ALabel} vs ${BLabel} — 7-Day (starting today)`;
+
+  const labels = days.map(d => {
+    const dt = new Date(d + "T12:00:00");
+    return dt.toLocaleDateString([], { weekday: "short" });
+  });
+
+  renderChart(labels, ALabel, aSeries, BLabel, bSeries);
+
+  status.textContent = "";
+}
+
+/* ========= First run ========= */
 compare();
 </script>
 
