@@ -70,7 +70,9 @@
     }
 
     .chartWrap { margin-top: 16px; }
+
     .actions { margin-top: 10px; display: flex; gap: 10px; }
+
   </style>
 </head>
 
@@ -176,38 +178,10 @@
       data: {
         labels,
         datasets: [
-          {
-            label: `${aName} High`,
-            data: aData.hi,
-            borderColor: COLOR_A,
-            borderWidth: 3,
-            pointRadius: 3
-          },
-          {
-            label: `${aName} Low`,
-            data: aData.lo,
-            borderColor: COLOR_A,
-            borderDash: [8, 6],
-            borderWidth: 2,
-            pointRadius: 3
-          },
-          {
-            label: `${bName} High`,
-            data: bData.hi,
-            borderColor: COLOR_B,
-            borderWidth: 3,
-            pointRadius: 3,
-            pointStyle: "rectRot"
-          },
-          {
-            label: `${bName} Low`,
-            data: bData.lo,
-            borderColor: COLOR_B,
-            borderDash: [8, 6],
-            borderWidth: 2,
-            pointRadius: 3,
-            pointStyle: "rectRot"
-          }
+          { label:`${aName} High`, data:aData.hi, borderColor:COLOR_A, borderWidth:2, pointRadius:3 },
+          { label:`${aName} Low`,  data:aData.lo, borderColor:COLOR_A, borderDash:[6,6], borderWidth:2, pointRadius:3 },
+          { label:`${bName} High`, data:bData.hi, borderColor:COLOR_B, borderWidth:2, pointRadius:3, pointStyle:"rectRot" },
+          { label:`${bName} Low`,  data:bData.lo, borderColor:COLOR_B, borderDash:[6,6], borderWidth:2, pointRadius:3, pointStyle:"rectRot" }
         ]
       },
       options: {
@@ -218,8 +192,7 @@
             labels: {
               usePointStyle: true,
               pointStyle: "line",
-              useLineStyle: true,
-              boxWidth: 50   // long enough to show dashed lows
+              boxWidth: 30
             }
           }
         },
@@ -252,11 +225,9 @@
       aToday.textContent = `${aData.hi[0]}° / ${aData.lo[0]}°`;
       bToday.textContent = `${bData.hi[0]}° / ${bData.lo[0]}°`;
 
-      const labels = aData.days.map(d =>
-        new Date(d).toLocaleDateString([], { weekday:"short" })
-      );
-
+      const labels = aData.days.map(d => new Date(d).toLocaleDateString([], { weekday:"short" }));
       chartTitle.textContent = `${A.name} vs ${B.name} — 7-Day Forecast`;
+
       renderChart(labels, A.name, aData, B.name, bData);
 
       const avgA = (aData.hi.reduce((a,b)=>a+b)+aData.lo.reduce((a,b)=>a+b))/(aData.hi.length*2);
