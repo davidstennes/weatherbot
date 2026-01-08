@@ -83,6 +83,16 @@
     background:#eef2f7; color:#123; border:1px solid #d6dbe3;
     font-weight: 800;
   }
+
+  /* unobtrusive winter indicator */
+  .badgeRow { display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap; }
+  .badge {
+    display:inline-flex; align-items:center; gap:8px;
+    background:#f4f4f4; border:1px solid #e3e3e3;
+    padding:6px 10px; border-radius:999px;
+    font-size:.9rem; color:#333; font-weight:700;
+  }
+  .badge.hidden { display:none; }
 </style>
 </head>
 
@@ -138,7 +148,7 @@
     <div class="tabbar">
       <button id="tabTemp" class="tabbtn active" onclick="showTempChart()">🌡️ Temperature</button>
       <button id="tabWind" class="tabbtn" onclick="showWindChart()">💨 Wind</button>
-      <button id="tabRain" class="tabbtn" onclick="showRainChart()">🌧️ Rain</button>
+      <button id="tabPrecip" class="tabbtn" onclick="showPrecipChart()">🌧️ Precip</button>
     </div>
 
     <h3 id="chartTitle" style="margin-top:12px;">—</h3>
@@ -156,7 +166,7 @@
     <div class="tabbar">
       <button id="tabTemp2" class="tabbtn" onclick="showTempChart()">🌡️ Temperature</button>
       <button id="tabWind2" class="tabbtn active" onclick="showWindChart()">💨 Wind</button>
-      <button id="tabRain2" class="tabbtn" onclick="showRainChart()">🌧️ Rain</button>
+      <button id="tabPrecip2" class="tabbtn" onclick="showPrecipChart()">🌧️ Precip</button>
     </div>
 
     <h3 id="windTitle" style="margin-top:12px;">—</h3>
@@ -166,21 +176,26 @@
   </div>
 </div>
 
-<!-- Rain chart view (LINES ONLY) -->
-<div id="rainView" style="display:none;">
+<!-- Precip chart view (LINES ONLY) -->
+<div id="precipView" style="display:none;">
   <button class="backBtn" onclick="showMain()">← Back to Today</button>
 
   <div class="chartWrap" style="margin-top:12px;">
     <div class="tabbar">
       <button id="tabTemp3" class="tabbtn" onclick="showTempChart()">🌡️ Temperature</button>
       <button id="tabWind3" class="tabbtn" onclick="showWindChart()">💨 Wind</button>
-      <button id="tabRain3" class="tabbtn active" onclick="showRainChart()">🌧️ Rain</button>
+      <button id="tabPrecip3" class="tabbtn active" onclick="showPrecipChart()">🌧️ Precip</button>
     </div>
 
-    <h3 id="rainTitle" style="margin-top:12px;">—</h3>
-    <canvas id="rainChart" height="260"></canvas>
-    <div id="rainLegend" class="legend"></div>
-    <p class="small">Solid = rain (in) · Dotted = chance (%)</p>
+    <div class="badgeRow">
+      <h3 id="precipTitle" style="margin-top:12px; flex: 1 1 auto;">—</h3>
+      <!-- Winter-only badge; hidden in summer / when snow isn’t likely -->
+      <span id="snowBadge" class="badge hidden" title="Snow possible when lows are ≤ 32°F and precip is forecast.">❄️ Snow possible</span>
+    </div>
+
+    <canvas id="precipChart" height="260"></canvas>
+    <div id="precipLegend" class="legend"></div>
+    <p class="small">Precip (Rain &amp; Snow) · Solid = total precip (in) · Dotted = chance (%)</p>
   </div>
 </div>
 
@@ -212,14 +227,14 @@ function placeLabel(r) {
 function showMain() {
   chartView.style.display = "none";
   windView.style.display = "none";
-  rainView.style.display = "none";
+  precipView.style.display = "none";
   mainView.style.display = "block";
 }
 
 function showTempChart() {
   mainView.style.display = "none";
   windView.style.display = "none";
-  rainView.style.display = "none";
+  precipView.style.display = "none";
   chartView.style.display = "block";
   setTabActive("temp");
 }
@@ -227,35 +242,38 @@ function showTempChart() {
 function showWindChart() {
   mainView.style.display = "none";
   chartView.style.display = "none";
-  rainView.style.display = "none";
+  precipView.style.display = "none";
   windView.style.display = "block";
   setTabActive("wind");
 }
 
-function showRainChart() {
+function showPrecipChart() {
   mainView.style.display = "none";
   chartView.style.display = "none";
   windView.style.display = "none";
-  rainView.style.display = "block";
-  setTabActive("rain");
+  precipView.style.display = "block";
+  setTabActive("precip");
 }
 
 function setTabActive(which) {
   const isTemp = which === "temp";
   const isWind = which === "wind";
-  const isRain = which === "rain";
+  const isPrecip = which === "precip";
 
+  // chartView tabs
   if (typeof tabTemp !== "undefined") tabTemp.classList.toggle("active", isTemp);
   if (typeof tabWind !== "undefined") tabWind.classList.toggle("active", isWind);
-  if (typeof tabRain !== "undefined") tabRain.classList.toggle("active", isRain);
+  if (typeof tabPrecip !== "undefined") tabPrecip.classList.toggle("active", isPrecip);
 
+  // windView tabs
   if (typeof tabTemp2 !== "undefined") tabTemp2.classList.toggle("active", isTemp);
   if (typeof tabWind2 !== "undefined") tabWind2.classList.toggle("active", isWind);
-  if (typeof tabRain2 !== "undefined") tabRain2.classList.toggle("active", isRain);
+  if (typeof tabPrecip2 !== "undefined") tabPrecip2.classList.toggle("active", isPrecip);
 
+  // precipView tabs
   if (typeof tabTemp3 !== "undefined") tabTemp3.classList.toggle("active", isTemp);
   if (typeof tabWind3 !== "undefined") tabWind3.classList.toggle("active", isWind);
-  if (typeof tabRain3 !== "undefined") tabRain3.classList.toggle("active", isRain);
+  if (typeof tabPrecip3 !== "undefined") tabPrecip3.classList.toggle("active", isPrecip);
 }
 
 /* ========= Geocode ========= */
@@ -296,8 +314,8 @@ async function get7DayFromToday(lat, lon) {
   const lo = [];
   const windPeak = [];
   const windAvg = [];
-  const rainIn = [];
-  const rainProb = [];
+  const precipIn = [];
+  const precipProb = [];
 
   const t  = j.daily.time;
   const h  = j.daily.temperature_2m_max;
@@ -314,12 +332,13 @@ async function get7DayFromToday(lat, lon) {
       lo.push(Math.round(l[i]));
       windPeak.push(Math.round(wp[i]));
       windAvg.push(Math.round(wa[i]));
-      rainIn.push(pr?.[i] != null ? Math.round(pr[i] * 100) / 100 : null);
-      rainProb.push(pp?.[i] != null ? Math.round(pp[i]) : null);
+      precipIn.push(pr?.[i] != null ? Math.round(pr[i] * 100) / 100 : null);
+      precipProb.push(pp?.[i] != null ? Math.round(pp[i]) : null);
     }
     if (days.length === 7) break;
   }
 
+  // fallback
   if (days.length < 7) {
     for (let i = 0; i < t.length && days.length < 7; i++) {
       if (!days.includes(t[i])) {
@@ -328,13 +347,13 @@ async function get7DayFromToday(lat, lon) {
         lo.push(Math.round(l[i]));
         windPeak.push(Math.round(wp[i]));
         windAvg.push(Math.round(wa[i]));
-        rainIn.push(pr?.[i] != null ? Math.round(pr[i] * 100) / 100 : null);
-        rainProb.push(pp?.[i] != null ? Math.round(pp[i]) : null);
+        precipIn.push(pr?.[i] != null ? Math.round(pr[i] * 100) / 100 : null);
+        precipProb.push(pp?.[i] != null ? Math.round(pp[i]) : null);
       }
     }
   }
 
-  return { days, hi, lo, windPeak, windAvg, rainIn, rainProb, tz };
+  return { days, hi, lo, windPeak, windAvg, precipIn, precipProb, tz };
 }
 
 /* ========= Align B to A's day labels ========= */
@@ -356,9 +375,9 @@ function alignWindToDays(days, data) {
   };
 }
 
-function alignRainToDays(days, data) {
-  const mapIn   = new Map(data.days.map((d, i) => [d, data.rainIn[i]]));
-  const mapProb = new Map(data.days.map((d, i) => [d, data.rainProb[i]]));
+function alignPrecipToDays(days, data) {
+  const mapIn   = new Map(data.days.map((d, i) => [d, data.precipIn[i]]));
+  const mapProb = new Map(data.days.map((d, i) => [d, data.precipProb[i]]));
   return {
     inches: days.map(d => mapIn.has(d) ? mapIn.get(d) : null),
     prob:   days.map(d => mapProb.has(d) ? mapProb.get(d) : null)
@@ -406,7 +425,7 @@ const htmlLegendPlugin = {
 
 let tempChart;
 let windChartInstance;
-let rainChartInstance;
+let precipChartInstance;
 
 function renderTempChart(dayLabels, aLabel, aSeries, bLabel, bSeries) {
   if (tempChart) tempChart.destroy();
@@ -460,30 +479,55 @@ function renderWindChart(dayLabels, aLabel, aWind, bLabel, bWind) {
   });
 }
 
-/* ========= Rain chart (LINES ONLY): solid=inches, dotted=chance% ========= */
-function renderRainChart(dayLabels, aLabel, aRain, bLabel, bRain) {
-  if (rainChartInstance) rainChartInstance.destroy();
+/* ========= Precip chart (LINES ONLY): solid=inches, dotted=chance% ========= */
+function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
+  if (precipChartInstance) precipChartInstance.destroy();
 
   const COLOR_A = "#1f77b4";
   const COLOR_B = "#ff7f0e";
 
-  rainChartInstance = new Chart(rainChart, {
+  precipChartInstance = new Chart(precipChart, {
     type: "line",
     data: {
       labels: dayLabels,
       datasets: [
         // inches (solid) on left axis
-        { label: `${aLabel} Rain (in)`, data: aRain.inches, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3, yAxisID: "y" },
-        { label: `${bLabel} Rain (in)`, data: bRain.inches, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y" },
+        { label: `${aLabel} Precip (in)`, data: aP.inches, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3, yAxisID: "y" },
+        { label: `${bLabel} Precip (in)`, data: bP.inches, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y" },
 
-        // chance (dotted) on right axis
-        { label: `${aLabel} Chance (%)`, data: aRain.prob, borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3, yAxisID: "y1" },
-        { label: `${bLabel} Chance (%)`, data: bRain.prob, borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y1" }
+        // probability (dotted) on right axis
+        { label: `${aLabel} Chance (%)`, data: aP.prob, borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3, yAxisID: "y1" },
+        { label: `${bLabel} Chance (%)`, data: bP.prob, borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y1" }
       ]
     },
     options: {
       interaction: { mode: "index", intersect: false },
-      plugins: { legend: { display: false }, htmlLegend: { containerID: "rainLegend" } },
+      plugins: {
+        legend: { display: false },
+        htmlLegend: { containerID: "precipLegend" },
+        tooltip: {
+          callbacks: {
+            afterBody: (items) => {
+              // Add per-day snow hint only when relevant and only in winter-ish conditions.
+              const idx = items?.[0]?.dataIndex;
+              if (idx == null) return "";
+              const dayKey = CURRENT.days?.[idx];
+              if (!dayKey) return "";
+
+              const aLow = CURRENT.aLo?.[idx];
+              const bLow = CURRENT.bLo?.[idx];
+              const aIn = CURRENT.aPIn?.[idx];
+              const bIn = CURRENT.bPIn?.[idx];
+
+              const snowA = (aLow != null && aLow <= 32 && (aIn || 0) > 0);
+              const snowB = (bLow != null && bLow <= 32 && (bIn || 0) > 0);
+
+              if (snowA || snowB) return "❄️ Snow possible (low ≤ 32°F + precip)";
+              return "";
+            }
+          }
+        }
+      },
       scales: {
         y:  { title: { display: true, text: "inches" }, beginAtZero: true },
         y1: { title: { display: true, text: "%" }, beginAtZero: true, max: 100, position: "right", grid: { drawOnChartArea: false } }
@@ -492,6 +536,15 @@ function renderRainChart(dayLabels, aLabel, aRain, bLabel, bRain) {
     plugins: [htmlLegendPlugin]
   });
 }
+
+/* ===== state used by tooltip snow hint ===== */
+const CURRENT = {
+  days: null,
+  aLo: null,
+  bLo: null,
+  aPIn: null,
+  bPIn: null
+};
 
 async function compare() {
   status.textContent = "Loading…";
@@ -516,6 +569,7 @@ async function compare() {
 
     const days = aData.days;
 
+    // Temps
     const aTemp = { hi: aData.hi, lo: aData.lo };
     const bTemp = alignToDays(days, bData);
 
@@ -530,15 +584,38 @@ async function compare() {
     chartTitle.textContent = `${ALabel} vs ${BLabel} — 7-Day (starting today)`;
     renderTempChart(labels, ALabel, aTemp, BLabel, bTemp);
 
+    // Wind
     const aWind = { peak: aData.windPeak, avg: aData.windAvg };
     const bWind = alignWindToDays(days, bData);
     windTitle.textContent = `${ALabel} vs ${BLabel} — Wind (7-Day, starting today)`;
     renderWindChart(labels, ALabel, aWind, BLabel, bWind);
 
-    const aRain = { inches: aData.rainIn, prob: aData.rainProb };
-    const bRain = alignRainToDays(days, bData);
-    rainTitle.textContent = `${ALabel} vs ${BLabel} — Rain (7-Day, starting today)`;
-    renderRainChart(labels, ALabel, aRain, BLabel, bRain);
+    // Precip
+    const aP = { inches: aData.precipIn, prob: aData.precipProb };
+    const bP = alignPrecipToDays(days, bData);
+    precipTitle.textContent = `${ALabel} vs ${BLabel} — Precip (Rain & Snow) (7-Day, starting today)`;
+    renderPrecipChart(labels, ALabel, aP, BLabel, bP);
+
+    // Winter-only, non-intrusive snow indicator (badge in precip view)
+    // "Snow possible" if any day has low ≤ 32°F AND precip > 0 (either location)
+    const bLoAligned = bTemp.lo; // aligned lows for B
+    const anySnow = days.some((_, i) => {
+      const aLow = aData.lo?.[i];
+      const bLow = bLoAligned?.[i];
+      const aIn  = aData.precipIn?.[i];
+      const bIn  = bP.inches?.[i];
+      return ((aLow != null && aLow <= 32 && (aIn || 0) > 0) ||
+              (bLow != null && bLow <= 32 && (bIn || 0) > 0));
+    });
+
+    snowBadge.classList.toggle("hidden", !anySnow);
+
+    // Feed tooltip helper state (per-day, only shows when it applies)
+    CURRENT.days = days;
+    CURRENT.aLo = aData.lo;
+    CURRENT.bLo = bLoAligned;
+    CURRENT.aPIn = aData.precipIn;
+    CURRENT.bPIn = bP.inches;
 
     status.textContent = "";
   } catch (e) {
