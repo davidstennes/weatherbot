@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>WeatherBot — Compare Two Locations</title>
+<title>WeatherBot — Know the weather before you go</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
   body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f7f7f7; }
-  h2 { margin: 0 0 10px 0; }
+  h2 { margin: 0; }
+  h3 { margin: 0; }
   .panel, .card, .chartWrap {
     background: #fff; padding: 16px; border-radius: 14px;
     box-shadow: 0 2px 8px rgba(0,0,0,.08);
@@ -60,6 +61,12 @@
     transform: translateX(-50%) rotate(45deg);
   }
 
+  /* --- Header block --- */
+  .brand { margin: 0 0 10px 0; }
+  .brandTitle { font-size: 1.5rem; font-weight: 900; margin: 0; }
+  .brandSub { margin: 4px 0 0 0; font-size: .95rem; color: #444; font-weight: 650; }
+  .brandTag { margin: 4px 0 0 0; font-size: .95rem; color: #666; }
+
   /* --- Chart tabs (Temp/Wind) --- */
   .tabbar { display:flex; gap:8px; margin-top: 12px; }
   .tabbtn {
@@ -70,13 +77,23 @@
   .tabbtn.active {
     background:#0077cc; color:#fff; border-color:#0077cc;
   }
+
+  /* neutral “back” button look (still consistent) */
+  .backBtn {
+    background:#eef2f7; color:#123; border:1px solid #d6dbe3;
+    font-weight: 800;
+  }
 </style>
 </head>
 
 <body>
 
 <div id="mainView">
-  <h2>WeatherBot</h2>
+  <div class="brand">
+    <div class="brandTitle">WeatherBot</div>
+    <div class="brandSub">Local conditions &amp; short-term outlook</div>
+    <div class="brandTag">Know the weather before you go.</div>
+  </div>
 
   <div class="panel">
     <div class="row">
@@ -109,13 +126,13 @@
   </div>
 
   <div class="actions">
-    <button class="wideBtn" onclick="showTempChart()">📈 Expand chart</button>
+    <button class="wideBtn" onclick="showTempChart()">View 7-Day Outlook</button>
   </div>
 </div>
 
 <!-- Temperature chart view -->
 <div id="chartView" style="display:none;">
-  <button onclick="showMain()">← Back</button>
+  <button class="backBtn" onclick="showMain()">← Back to Today</button>
 
   <div class="chartWrap" style="margin-top:12px;">
     <div class="tabbar">
@@ -126,13 +143,13 @@
     <h3 id="chartTitle" style="margin-top:12px;">—</h3>
     <canvas id="comboChart" height="260"></canvas>
     <div id="htmlLegend" class="legend"></div>
-    <p class="small">Color = location · Solid = high · Dotted = low (legend)</p>
+    <p class="small">Color = location · Solid = high · Dotted = low</p>
   </div>
 </div>
 
 <!-- Wind chart view -->
 <div id="windView" style="display:none;">
-  <button onclick="showTempChart()">← Back to temperature</button>
+  <button class="backBtn" onclick="showMain()">← Back to Today</button>
 
   <div class="chartWrap" style="margin-top:12px;">
     <div class="tabbar">
