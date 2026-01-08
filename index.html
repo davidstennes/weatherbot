@@ -18,15 +18,15 @@
   @media (min-width: 780px) { .row { grid-template-columns: 1fr 1fr auto; align-items: end; } }
 
   label { font-weight: 650; display:block; margin-bottom: 6px; }
-  input, select {
+  input {
     width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; font-size: 1rem;
-    background: #fff;
   }
   button {
     padding: 12px 14px; border-radius: 10px; border: none;
     background: #0077cc; color: #fff; font-weight: 700; cursor: pointer;
   }
   button:hover { opacity: .92; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
 
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 16px; margin-top: 14px; }
   .temp { font-size: 2rem; font-weight: 900; }
@@ -60,11 +60,16 @@
     transform: translateX(-50%) rotate(45deg);
   }
 
-  /* Ambiguity chooser */
-  .chooserWrap { display:none; margin-top: 12px; }
-  .chooserGrid { display:grid; grid-template-columns: 1fr; gap: 10px; }
-  @media (min-width: 780px) { .chooserGrid { grid-template-columns: 1fr 1fr auto; align-items: end; } }
-  .hint { margin-top: 8px; }
+  /* --- Chart tabs (Temp/Wind) --- */
+  .tabbar { display:flex; gap:8px; margin-top: 12px; }
+  .tabbtn {
+    background:#e9eef6; color:#123; border:1px solid #d6dbe3;
+    padding:10px 12px; border-radius:10px; font-weight:800;
+  }
+  .tabbtn:hover { opacity: 1; filter: brightness(0.98); }
+  .tabbtn.active {
+    background:#0077cc; color:#fff; border-color:#0077cc;
+  }
 </style>
 </head>
 
@@ -84,28 +89,9 @@
         <input id="locB" value="San Diego">
       </div>
       <div>
-        <button onclick="compare()">Compare</button>
+        <button id="compareBtn" onclick="compare()">Compare</button>
       </div>
     </div>
-
-    <!-- City ambiguity selectors -->
-    <div id="chooserWrap" class="chooserWrap">
-      <div class="chooserGrid">
-        <div>
-          <label>Pick Location A</label>
-          <select id="pickA"></select>
-        </div>
-        <div>
-          <label>Pick Location B</label>
-          <select id="pickB"></select>
-        </div>
-        <div>
-          <button id="applyPicksBtn" onclick="applyPicks()">Apply picks</button>
-        </div>
-      </div>
-      <div class="small hint">If a city name matches multiple places, pick the exact one here (no default guessing).</div>
-    </div>
-
     <div id="status" class="small"></div>
   </div>
 
@@ -123,18 +109,41 @@
   </div>
 
   <div class="actions">
-    <button class="wideBtn" onclick="showChart()">📈 Expand chart</button>
+    <button class="wideBtn" onclick="showTempChart()">📈 Expand chart</button>
   </div>
 </div>
 
+<!-- Temperature chart view -->
 <div id="chartView" style="display:none;">
   <button onclick="showMain()">← Back</button>
 
   <div class="chartWrap" style="margin-top:12px;">
-    <h3 id="chartTitle">—</h3>
+    <div class="tabbar">
+      <button id="tabTemp" class="tabbtn active" onclick="showTempChart()">🌡️ Temperature</button>
+      <button id="tabWind" class="tabbtn" onclick="showWindChart()">💨 Wind</button>
+    </div>
+
+    <h3 id="chartTitle" style="margin-top:12px;">—</h3>
     <canvas id="comboChart" height="260"></canvas>
     <div id="htmlLegend" class="legend"></div>
     <p class="small">Color = location · Solid = high · Dotted = low (legend)</p>
+  </div>
+</div>
+
+<!-- Wind chart view -->
+<div id="windView" style="display:none;">
+  <button onclick="showTempChart()">← Back to temperature</button>
+
+  <div class="chartWrap" style="margin-top:12px;">
+    <div class="tabbar">
+      <button id="tabTemp2" class="tabbtn" onclick="showTempChart()">🌡️ Temperature</button>
+      <button id="tabWind2" class="tabbtn active" onclick="showWindChart()">💨 Wind</button>
+    </div>
+
+    <h3 id="windTitle" style="margin-top:12px;">—</h3>
+    <canvas id="windChart" height="260"></canvas>
+    <div id="windLegend" class="legend"></div>
+    <p class="small">Color = location · Solid = peak · Dotted = average</p>
   </div>
 </div>
 
@@ -155,73 +164,53 @@ const US_STATES = {
 };
 
 function placeLabel(r) {
-  // Two-letter state suffix for US (your “suffix” requirement)
+  // Two-letter state suffix for US
   if (r.country === "United States" && r.admin1 && US_STATES[r.admin1]) {
     return `${r.name}, ${US_STATES[r.admin1]}`;
   }
-  // fallback: City, admin1
   if (r.admin1) return `${r.name}, ${r.admin1}`;
   return r.name;
 }
 
 /* ========= View toggles ========= */
-function showChart() { mainView.style.display = "none"; chartView.style.display = "block"; }
-function showMain()  { chartView.style.display = "none"; mainView.style.display = "block"; }
+function showMain() {
+  chartView.style.display = "none";
+  windView.style.display = "none";
+  mainView.style.display = "block";
+}
 
-/* ========= Geocode (MULTI) ========= */
-async function geocodeMany(name, count=8) {
+function showTempChart() {
+  mainView.style.display = "none";
+  windView.style.display = "none";
+  chartView.style.display = "block";
+  setTabActive("temp");
+}
+
+function showWindChart() {
+  mainView.style.display = "none";
+  chartView.style.display = "none";
+  windView.style.display = "block";
+  setTabActive("wind");
+}
+
+function setTabActive(which) {
+  const isTemp = which === "temp";
+  // temp view tabs
+  if (typeof tabTemp !== "undefined") tabTemp.classList.toggle("active", isTemp);
+  if (typeof tabWind !== "undefined") tabWind.classList.toggle("active", !isTemp);
+  // wind view tabs
+  if (typeof tabTemp2 !== "undefined") tabTemp2.classList.toggle("active", isTemp);
+  if (typeof tabWind2 !== "undefined") tabWind2.classList.toggle("active", !isTemp);
+}
+
+/* ========= Geocode ========= */
+async function geocode(name) {
   const r = await fetch(
-    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=${count}&language=en&format=json`
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=en&format=json`
   );
   const j = await r.json();
   if (!j.results?.length) throw new Error(`Location not found: ${name}`);
-  return j.results;
-}
-
-/* ========= City ambiguity UI ========= */
-let pendingA = null; // { query, results }
-let pendingB = null;
-
-function fillPick(selectEl, results) {
-  selectEl.innerHTML = "";
-  results.forEach((r, idx) => {
-    const opt = document.createElement("option");
-    opt.value = String(idx);
-    // show extra detail to reduce ambiguity
-    const extra = [];
-    if (r.admin1) extra.push(r.admin1);
-    if (r.country) extra.push(r.country);
-    opt.textContent = `${placeLabel(r)}${extra.length ? " — " + extra.join(", ") : ""} (${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)})`;
-    selectEl.appendChild(opt);
-  });
-}
-
-function showChooserIfNeeded() {
-  const need = (pendingA && pendingA.results.length > 1) || (pendingB && pendingB.results.length > 1);
-  chooserWrap.style.display = need ? "block" : "none";
-
-  // If one side is not ambiguous, still show a 1-item dropdown so Apply can proceed cleanly
-  if (pendingA) fillPick(pickA, pendingA.results);
-  if (pendingB) fillPick(pickB, pendingB.results);
-
-  // If not needed, ensure it’s hidden
-  if (!need) chooserWrap.style.display = "none";
-}
-
-function applyPicks() {
-  if (!pendingA || !pendingB) return;
-
-  const aIdx = parseInt(pickA.value, 10) || 0;
-  const bIdx = parseInt(pickB.value, 10) || 0;
-
-  const A = pendingA.results[aIdx] || pendingA.results[0];
-  const B = pendingB.results[bIdx] || pendingB.results[0];
-
-  chooserWrap.style.display = "none";
-  status.textContent = "";
-
-  // Continue with chosen exact locations
-  compareWithResolved(A, B);
+  return j.results[0];
 }
 
 /* ========= Timezone-correct "today" (YYYY-MM-DD) ========= */
@@ -239,7 +228,9 @@ function todayInTimeZone(tz) {
 async function get7DayFromToday(lat, lon) {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-    `&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`;
+    `&daily=temperature_2m_max,temperature_2m_min,wind_speed_10m_max,wind_speed_10m_mean` +
+    `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
+
   const r = await fetch(url);
   const j = await r.json();
 
@@ -249,16 +240,22 @@ async function get7DayFromToday(lat, lon) {
   const days = [];
   const hi = [];
   const lo = [];
+  const windPeak = [];
+  const windAvg = [];
 
   const t = j.daily.time;
   const h = j.daily.temperature_2m_max;
   const l = j.daily.temperature_2m_min;
+  const wp = j.daily.wind_speed_10m_max;
+  const wa = j.daily.wind_speed_10m_mean;
 
   for (let i = 0; i < t.length; i++) {
     if (t[i] >= today) {
       days.push(t[i]);
       hi.push(Math.round(h[i]));
       lo.push(Math.round(l[i]));
+      windPeak.push(Math.round(wp[i]));
+      windAvg.push(Math.round(wa[i]));
     }
     if (days.length === 7) break;
   }
@@ -270,11 +267,13 @@ async function get7DayFromToday(lat, lon) {
         days.push(t[i]);
         hi.push(Math.round(h[i]));
         lo.push(Math.round(l[i]));
+        windPeak.push(Math.round(wp[i]));
+        windAvg.push(Math.round(wa[i]));
       }
     }
   }
 
-  return { days, hi, lo, tz };
+  return { days, hi, lo, windPeak, windAvg, tz };
 }
 
 /* ========= Align B to A's day labels (so one chart) ========= */
@@ -287,7 +286,16 @@ function alignToDays(days, data) {
   };
 }
 
-/* ========= HTML legend plugin (dotted lows) ========= */
+function alignWindToDays(days, data) {
+  const mapPeak = new Map(data.days.map((d, i) => [d, data.windPeak[i]]));
+  const mapAvg  = new Map(data.days.map((d, i) => [d, data.windAvg[i]]));
+  return {
+    peak: days.map(d => mapPeak.has(d) ? mapPeak.get(d) : null),
+    avg:  days.map(d => mapAvg.has(d)  ? mapAvg.get(d)  : null)
+  };
+}
+
+/* ========= HTML legend plugin (dotted lows/avg) ========= */
 const htmlLegendPlugin = {
   id: "htmlLegend",
   afterUpdate(chart, args, opts) {
@@ -303,7 +311,6 @@ const htmlLegendPlugin = {
       line.style.borderTopColor = ds.borderColor;
       line.style.color = ds.borderColor;
 
-      // DOTTED legend sample for lows (datasets with borderDash)
       if (Array.isArray(ds.borderDash) && ds.borderDash.length) {
         line.style.borderTopStyle = "dotted";
       } else {
@@ -330,15 +337,16 @@ const htmlLegendPlugin = {
   }
 };
 
-let chart;
+let tempChart;
+let windChartInstance;
 
-function renderChart(dayLabels, aLabel, aSeries, bLabel, bSeries) {
-  if (chart) chart.destroy();
+function renderTempChart(dayLabels, aLabel, aSeries, bLabel, bSeries) {
+  if (tempChart) tempChart.destroy();
 
   const COLOR_A = "#1f77b4";
   const COLOR_B = "#ff7f0e";
 
-  chart = new Chart(comboChart, {
+  tempChart = new Chart(comboChart, {
     type: "line",
     data: {
       labels: dayLabels,
@@ -363,87 +371,89 @@ function renderChart(dayLabels, aLabel, aSeries, bLabel, bSeries) {
   });
 }
 
-/* ========= Compare (with ambiguity handling) ========= */
+function renderWindChart(dayLabels, aLabel, aWind, bLabel, bWind) {
+  if (windChartInstance) windChartInstance.destroy();
+
+  const COLOR_A = "#1f77b4";
+  const COLOR_B = "#ff7f0e";
+
+  windChartInstance = new Chart(windChart, {
+    type: "line",
+    data: {
+      labels: dayLabels,
+      datasets: [
+        { label: `${aLabel} Peak`, data: aWind.peak, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3 },
+        { label: `${aLabel} Avg`,  data: aWind.avg,  borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3 },
+
+        { label: `${bLabel} Peak`, data: bWind.peak, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot" },
+        { label: `${bLabel} Avg`,  data: bWind.avg,  borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot" }
+      ]
+    },
+    options: {
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        htmlLegend: { containerID: "windLegend" }
+      },
+      scales: {
+        y: { title: { display: true, text: "mph" } }
+      }
+    },
+    plugins: [htmlLegendPlugin]
+  });
+}
+
 async function compare() {
   status.textContent = "Loading…";
+  compareBtn.disabled = true;
 
   try {
-    const queryA = locA.value.trim();
-    const queryB = locB.value.trim();
+    const [A, B] = await Promise.all([ geocode(locA.value), geocode(locB.value) ]);
 
-    if (!queryA) throw new Error("Location A is empty.");
-    if (!queryB) throw new Error("Location B is empty.");
+    const ALabel = placeLabel(A);
+    const BLabel = placeLabel(B);
 
-    // pull multiple candidates for each
-    const [resultsA, resultsB] = await Promise.all([
-      geocodeMany(queryA, 10),
-      geocodeMany(queryB, 10)
+    aTitle.textContent = ALabel;
+    bTitle.textContent = BLabel;
+
+    aEcho.textContent = `${ALabel} (${A.latitude.toFixed(4)}, ${A.longitude.toFixed(4)})`;
+    bEcho.textContent = `${BLabel} (${B.latitude.toFixed(4)}, ${B.longitude.toFixed(4)})`;
+
+    const [aData, bData] = await Promise.all([
+      get7DayFromToday(A.latitude, A.longitude),
+      get7DayFromToday(B.latitude, B.longitude)
     ]);
 
-    pendingA = { query: queryA, results: resultsA };
-    pendingB = { query: queryB, results: resultsB };
+    const days = aData.days;
 
-    const ambA = resultsA.length > 1;
-    const ambB = resultsB.length > 1;
+    const aTemp = { hi: aData.hi, lo: aData.lo };
+    const bTemp = alignToDays(days, bData);
 
-    // If either is ambiguous, show picker and stop until user confirms
-    if (ambA || ambB) {
-      showChooserIfNeeded();
-      status.textContent = "Choose exact locations, then tap “Apply picks”.";
-      return;
-    }
+    aToday.textContent = `${aTemp.hi[0]}° / ${aTemp.lo[0]}°`;
+    bToday.textContent = `${bTemp.hi[0] ?? "—"}° / ${bTemp.lo[0] ?? "—"}°`;
 
-    // Not ambiguous — proceed with the single results
-    chooserWrap.style.display = "none";
-    compareWithResolved(resultsA[0], resultsB[0]);
+    const labels = days.map(d => {
+      const dt = new Date(d + "T12:00:00");
+      return dt.toLocaleDateString([], { weekday: "short" });
+    });
 
+    chartTitle.textContent = `${ALabel} vs ${BLabel} — 7-Day (starting today)`;
+    renderTempChart(labels, ALabel, aTemp, BLabel, bTemp);
+
+    const aWind = { peak: aData.windPeak, avg: aData.windAvg };
+    const bWind = alignWindToDays(days, bData);
+
+    windTitle.textContent = `${ALabel} vs ${BLabel} — Wind (7-Day, starting today)`;
+    renderWindChart(labels, ALabel, aWind, BLabel, bWind);
+
+    status.textContent = "";
   } catch (e) {
-    chooserWrap.style.display = "none";
-    status.textContent = e.message || String(e);
+    status.textContent = e?.message || String(e);
+  } finally {
+    compareBtn.disabled = false;
   }
 }
 
-/* ========= Compare using resolved A/B objects ========= */
-async function compareWithResolved(A, B) {
-  status.textContent = "Loading forecast…";
-
-  const ALabel = placeLabel(A);
-  const BLabel = placeLabel(B);
-
-  aTitle.textContent = ALabel;
-  bTitle.textContent = BLabel;
-
-  // Show confirmation echo with coords too
-  aEcho.textContent = `${ALabel} (${A.latitude.toFixed(4)}, ${A.longitude.toFixed(4)})`;
-  bEcho.textContent = `${BLabel} (${B.latitude.toFixed(4)}, ${B.longitude.toFixed(4)})`;
-
-  const [aData, bData] = await Promise.all([
-    get7DayFromToday(A.latitude, A.longitude),
-    get7DayFromToday(B.latitude, B.longitude)
-  ]);
-
-  // Use A's day list as the chart axis (simple + consistent)
-  const days = aData.days;
-
-  const aSeries = { hi: aData.hi, lo: aData.lo };
-  const bSeries = alignToDays(days, bData);
-
-  aToday.textContent = `${aSeries.hi[0]}° / ${aSeries.lo[0]}°`;
-  bToday.textContent = `${bSeries.hi[0] ?? "—"}° / ${bSeries.lo[0] ?? "—"}°`;
-
-  chartTitle.textContent = `${ALabel} vs ${BLabel} — 7-Day (starting today)`;
-
-  const labels = days.map(d => {
-    const dt = new Date(d + "T12:00:00");
-    return dt.toLocaleDateString([], { weekday: "short" });
-  });
-
-  renderChart(labels, ALabel, aSeries, BLabel, bSeries);
-
-  status.textContent = "";
-}
-
-/* ========= First run ========= */
 compare();
 </script>
 
