@@ -83,16 +83,6 @@
     background:#eef2f7; color:#123; border:1px solid #d6dbe3;
     font-weight: 800;
   }
-
-  /* unobtrusive winter indicator */
-  .badgeRow { display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap; }
-  .badge {
-    display:inline-flex; align-items:center; gap:8px;
-    background:#f4f4f4; border:1px solid #e3e3e3;
-    padding:6px 10px; border-radius:999px;
-    font-size:.9rem; color:#333; font-weight:700;
-  }
-  .badge.hidden { display:none; }
 </style>
 </head>
 
@@ -187,12 +177,7 @@
       <button id="tabPrecip3" class="tabbtn active" onclick="showPrecipChart()">🌧️ Precip</button>
     </div>
 
-    <div class="badgeRow">
-      <h3 id="precipTitle" style="margin-top:12px; flex: 1 1 auto;">—</h3>
-      <!-- Winter-only badge; hidden in summer / when snow isn’t likely -->
-      <span id="snowBadge" class="badge hidden" title="Snow possible when lows are ≤ 32°F and precip is forecast.">❄️ Snow possible</span>
-    </div>
-
+    <h3 id="precipTitle" style="margin-top:12px;">—</h3>
     <canvas id="precipChart" height="260"></canvas>
     <div id="precipLegend" class="legend"></div>
     <p class="small">Precip (Rain &amp; Snow) · Solid = total precip (in) · Dotted = chance (%)</p>
@@ -260,17 +245,14 @@ function setTabActive(which) {
   const isWind = which === "wind";
   const isPrecip = which === "precip";
 
-  // chartView tabs
   if (typeof tabTemp !== "undefined") tabTemp.classList.toggle("active", isTemp);
   if (typeof tabWind !== "undefined") tabWind.classList.toggle("active", isWind);
   if (typeof tabPrecip !== "undefined") tabPrecip.classList.toggle("active", isPrecip);
 
-  // windView tabs
   if (typeof tabTemp2 !== "undefined") tabTemp2.classList.toggle("active", isTemp);
   if (typeof tabWind2 !== "undefined") tabWind2.classList.toggle("active", isWind);
   if (typeof tabPrecip2 !== "undefined") tabPrecip2.classList.toggle("active", isPrecip);
 
-  // precipView tabs
   if (typeof tabTemp3 !== "undefined") tabTemp3.classList.toggle("active", isTemp);
   if (typeof tabWind3 !== "undefined") tabWind3.classList.toggle("active", isWind);
   if (typeof tabPrecip3 !== "undefined") tabPrecip3.classList.toggle("active", isPrecip);
@@ -338,7 +320,6 @@ async function get7DayFromToday(lat, lon) {
     if (days.length === 7) break;
   }
 
-  // fallback
   if (days.length < 7) {
     for (let i = 0; i < t.length && days.length < 7; i++) {
       if (!days.includes(t[i])) {
@@ -427,6 +408,17 @@ let tempChart;
 let windChartInstance;
 let precipChartInstance;
 
+/* ===== state used by precip tooltip hint ===== */
+const CURRENT = {
+  days: null,
+  aLo: null,
+  bLo: null,
+  aPIn: null,
+  bPIn: null,
+  snowAAny: false,
+  snowBAny: false
+};
+
 function renderTempChart(dayLabels, aLabel, aSeries, bLabel, bSeries) {
   if (tempChart) tempChart.destroy();
 
@@ -479,25 +471,33 @@ function renderWindChart(dayLabels, aLabel, aWind, bLabel, bWind) {
   });
 }
 
-/* ========= Precip chart (LINES ONLY): solid=inches, dotted=chance% ========= */
+/* ========= Precip chart (LINES ONLY)
+   Legend order requested:
+   - Location A: solid + dotted
+   - Location B: solid + dotted
+   Snow icon shown ONLY on the location(s) where snow is possible this week.
+========= */
 function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
   if (precipChartInstance) precipChartInstance.destroy();
 
   const COLOR_A = "#1f77b4";
   const COLOR_B = "#ff7f0e";
 
+  const aSnow = CURRENT.snowAAny ? " ❄️" : "";
+  const bSnow = CURRENT.snowBAny ? " ❄️" : "";
+
   precipChartInstance = new Chart(precipChart, {
     type: "line",
     data: {
       labels: dayLabels,
       datasets: [
-        // inches (solid) on left axis
-        { label: `${aLabel} Precip (in)`, data: aP.inches, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3, yAxisID: "y" },
-        { label: `${bLabel} Precip (in)`, data: bP.inches, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y" },
+        // A first (solid + dotted)
+        { label: `${aLabel} Precip (in)${aSnow}`, data: aP.inches, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3, yAxisID: "y" },
+        { label: `${aLabel} Chance (%)${aSnow}`, data: aP.prob,   borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3, yAxisID: "y1" },
 
-        // probability (dotted) on right axis
-        { label: `${aLabel} Chance (%)`, data: aP.prob, borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3, yAxisID: "y1" },
-        { label: `${bLabel} Chance (%)`, data: bP.prob, borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y1" }
+        // B second (solid + dotted)
+        { label: `${bLabel} Precip (in)${bSnow}`, data: bP.inches, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y" },
+        { label: `${bLabel} Chance (%)${bSnow}`, data: bP.prob,   borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y1" }
       ]
     },
     options: {
@@ -508,21 +508,19 @@ function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
         tooltip: {
           callbacks: {
             afterBody: (items) => {
-              // Add per-day snow hint only when relevant and only in winter-ish conditions.
               const idx = items?.[0]?.dataIndex;
               if (idx == null) return "";
-              const dayKey = CURRENT.days?.[idx];
-              if (!dayKey) return "";
-
               const aLow = CURRENT.aLo?.[idx];
               const bLow = CURRENT.bLo?.[idx];
-              const aIn = CURRENT.aPIn?.[idx];
-              const bIn = CURRENT.bPIn?.[idx];
+              const aIn  = CURRENT.aPIn?.[idx];
+              const bIn  = CURRENT.bPIn?.[idx];
 
               const snowA = (aLow != null && aLow <= 32 && (aIn || 0) > 0);
               const snowB = (bLow != null && bLow <= 32 && (bIn || 0) > 0);
 
-              if (snowA || snowB) return "❄️ Snow possible (low ≤ 32°F + precip)";
+              if (snowA && snowB) return "❄️ Snow possible at both locations (low ≤ 32°F + precip)";
+              if (snowA) return "❄️ Snow possible at Location A (low ≤ 32°F + precip)";
+              if (snowB) return "❄️ Snow possible at Location B (low ≤ 32°F + precip)";
               return "";
             }
           }
@@ -536,15 +534,6 @@ function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
     plugins: [htmlLegendPlugin]
   });
 }
-
-/* ===== state used by tooltip snow hint ===== */
-const CURRENT = {
-  days: null,
-  aLo: null,
-  bLo: null,
-  aPIn: null,
-  bPIn: null
-};
 
 async function compare() {
   status.textContent = "Loading…";
@@ -593,29 +582,27 @@ async function compare() {
     // Precip
     const aP = { inches: aData.precipIn, prob: aData.precipProb };
     const bP = alignPrecipToDays(days, bData);
+
     precipTitle.textContent = `${ALabel} vs ${BLabel} — Precip (Rain & Snow) (7-Day, starting today)`;
-    renderPrecipChart(labels, ALabel, aP, BLabel, bP);
 
-    // Winter-only, non-intrusive snow indicator (badge in precip view)
-    // "Snow possible" if any day has low ≤ 32°F AND precip > 0 (either location)
-    const bLoAligned = bTemp.lo; // aligned lows for B
-    const anySnow = days.some((_, i) => {
-      const aLow = aData.lo?.[i];
-      const bLow = bLoAligned?.[i];
-      const aIn  = aData.precipIn?.[i];
-      const bIn  = bP.inches?.[i];
-      return ((aLow != null && aLow <= 32 && (aIn || 0) > 0) ||
-              (bLow != null && bLow <= 32 && (bIn || 0) > 0));
-    });
+    // Determine snow possible THIS WEEK per location:
+    // any day where low ≤ 32°F AND precip > 0.
+    const snowAAny = days.some((_, i) => (aData.lo?.[i] != null && aData.lo[i] <= 32 && (aData.precipIn?.[i] || 0) > 0));
+    // B lows aligned to A's day list:
+    const bLoAligned = bTemp.lo;
+    const snowBAny = days.some((_, i) => (bLoAligned?.[i] != null && bLoAligned[i] <= 32 && (bP.inches?.[i] || 0) > 0));
 
-    snowBadge.classList.toggle("hidden", !anySnow);
-
-    // Feed tooltip helper state (per-day, only shows when it applies)
+    // Feed tooltip state + legend icon decision
     CURRENT.days = days;
     CURRENT.aLo = aData.lo;
     CURRENT.bLo = bLoAligned;
     CURRENT.aPIn = aData.precipIn;
     CURRENT.bPIn = bP.inches;
+    CURRENT.snowAAny = snowAAny;
+    CURRENT.snowBAny = snowBAny;
+
+    // Now render (labels include ❄️ only for applicable location)
+    renderPrecipChart(labels, ALabel, aP, BLabel, bP);
 
     status.textContent = "";
   } catch (e) {
