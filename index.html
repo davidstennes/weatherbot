@@ -166,7 +166,7 @@
   </div>
 </div>
 
-<!-- Rain chart view -->
+<!-- Rain chart view (LINES ONLY) -->
 <div id="rainView" style="display:none;">
   <button class="backBtn" onclick="showMain()">← Back to Today</button>
 
@@ -180,7 +180,7 @@
     <h3 id="rainTitle" style="margin-top:12px;">—</h3>
     <canvas id="rainChart" height="260"></canvas>
     <div id="rainLegend" class="legend"></div>
-    <p class="small">Bars = total rain (in) · Lines = rain chance (%)</p>
+    <p class="small">Solid = rain (in) · Dotted = chance (%)</p>
   </div>
 </div>
 
@@ -245,17 +245,14 @@ function setTabActive(which) {
   const isWind = which === "wind";
   const isRain = which === "rain";
 
-  // chartView tabs
   if (typeof tabTemp !== "undefined") tabTemp.classList.toggle("active", isTemp);
   if (typeof tabWind !== "undefined") tabWind.classList.toggle("active", isWind);
   if (typeof tabRain !== "undefined") tabRain.classList.toggle("active", isRain);
 
-  // windView tabs
   if (typeof tabTemp2 !== "undefined") tabTemp2.classList.toggle("active", isTemp);
   if (typeof tabWind2 !== "undefined") tabWind2.classList.toggle("active", isWind);
   if (typeof tabRain2 !== "undefined") tabRain2.classList.toggle("active", isRain);
 
-  // rainView tabs
   if (typeof tabTemp3 !== "undefined") tabTemp3.classList.toggle("active", isTemp);
   if (typeof tabWind3 !== "undefined") tabWind3.classList.toggle("active", isWind);
   if (typeof tabRain3 !== "undefined") tabRain3.classList.toggle("active", isRain);
@@ -317,7 +314,7 @@ async function get7DayFromToday(lat, lon) {
       lo.push(Math.round(l[i]));
       windPeak.push(Math.round(wp[i]));
       windAvg.push(Math.round(wa[i]));
-      rainIn.push(pr?.[i] != null ? Math.round(pr[i] * 100) / 100 : null); // keep 2 decimals
+      rainIn.push(pr?.[i] != null ? Math.round(pr[i] * 100) / 100 : null);
       rainProb.push(pp?.[i] != null ? Math.round(pp[i]) : null);
     }
     if (days.length === 7) break;
@@ -381,18 +378,15 @@ const htmlLegendPlugin = {
 
       const line = document.createElement("div");
       line.className = "legend-line";
-      line.style.borderTopColor = ds.borderColor || ds.backgroundColor;
-      line.style.color = ds.borderColor || ds.backgroundColor;
+      line.style.borderTopColor = ds.borderColor;
+      line.style.color = ds.borderColor;
 
       const isDashed = Array.isArray(ds.borderDash) && ds.borderDash.length;
-      const isBar = ds.type === "bar";
-
-      line.style.borderTopStyle = (isBar ? "solid" : (isDashed ? "dotted" : "solid"));
+      line.style.borderTopStyle = isDashed ? "dotted" : "solid";
 
       const dot = document.createElement("div");
       dot.className = "legend-dot";
       if (ds.pointStyle === "rectRot") dot.classList.add("diamond");
-      if (isBar) dot.style.display = "none";
       line.appendChild(dot);
 
       const text = document.createElement("span");
@@ -466,6 +460,7 @@ function renderWindChart(dayLabels, aLabel, aWind, bLabel, bWind) {
   });
 }
 
+/* ========= Rain chart (LINES ONLY): solid=inches, dotted=chance% ========= */
 function renderRainChart(dayLabels, aLabel, aRain, bLabel, bRain) {
   if (rainChartInstance) rainChartInstance.destroy();
 
@@ -473,16 +468,17 @@ function renderRainChart(dayLabels, aLabel, aRain, bLabel, bRain) {
   const COLOR_B = "#ff7f0e";
 
   rainChartInstance = new Chart(rainChart, {
+    type: "line",
     data: {
       labels: dayLabels,
       datasets: [
-        // Bars: inches
-        { type: "bar", label: `${aLabel} Rain (in)`, data: aRain.inches, backgroundColor: COLOR_A, yAxisID: "y" },
-        { type: "bar", label: `${bLabel} Rain (in)`, data: bRain.inches, backgroundColor: COLOR_B, yAxisID: "y" },
+        // inches (solid) on left axis
+        { label: `${aLabel} Rain (in)`, data: aRain.inches, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3, yAxisID: "y" },
+        { label: `${bLabel} Rain (in)`, data: bRain.inches, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y" },
 
-        // Lines: probability
-        { type: "line", label: `${aLabel} Chance (%)`, data: aRain.prob, borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3, yAxisID: "y1" },
-        { type: "line", label: `${bLabel} Chance (%)`, data: bRain.prob, borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y1" }
+        // chance (dotted) on right axis
+        { label: `${aLabel} Chance (%)`, data: aRain.prob, borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3, yAxisID: "y1" },
+        { label: `${bLabel} Chance (%)`, data: bRain.prob, borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y1" }
       ]
     },
     options: {
@@ -520,7 +516,6 @@ async function compare() {
 
     const days = aData.days;
 
-    // Temps
     const aTemp = { hi: aData.hi, lo: aData.lo };
     const bTemp = alignToDays(days, bData);
 
@@ -535,13 +530,11 @@ async function compare() {
     chartTitle.textContent = `${ALabel} vs ${BLabel} — 7-Day (starting today)`;
     renderTempChart(labels, ALabel, aTemp, BLabel, bTemp);
 
-    // Wind
     const aWind = { peak: aData.windPeak, avg: aData.windAvg };
     const bWind = alignWindToDays(days, bData);
     windTitle.textContent = `${ALabel} vs ${BLabel} — Wind (7-Day, starting today)`;
     renderWindChart(labels, ALabel, aWind, BLabel, bWind);
 
-    // Rain
     const aRain = { inches: aData.rainIn, prob: aData.rainProb };
     const bRain = alignRainToDays(days, bData);
     rainTitle.textContent = `${ALabel} vs ${BLabel} — Rain (7-Day, starting today)`;
