@@ -18,14 +18,11 @@
   .row { display: grid; grid-template-columns: 1fr; gap: 10px; }
   @media (min-width: 780px) { .row { grid-template-columns: 1fr 1fr auto; align-items: end; } }
 
-  /* --- Location inputs: label inline with input --- */
-  .field { display:flex; align-items:center; gap:10px; }
-  .field label { font-weight: 650; margin: 0; white-space: nowrap; }
-  .field input { flex: 1; }
-
   input {
     width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; font-size: 1rem;
   }
+  input::placeholder { color: #8a8a8a; font-weight: 600; }
+
   button {
     padding: 12px 14px; border-radius: 10px; border: none;
     background: #0077cc; color: #fff; font-weight: 700; cursor: pointer;
@@ -35,7 +32,7 @@
 
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 16px; margin-top: 14px; }
 
-  /* --- Front page: temp a little smaller --- */
+  /* Temp a little smaller to create room */
   .temp { font-size: 1.75rem; font-weight: 900; }
 
   .small { font-size: .9rem; color: #666; line-height: 1.25; margin-top: 6px; }
@@ -90,6 +87,26 @@
     background:#eef2f7; color:#123; border:1px solid #d6dbe3;
     font-weight: 800;
   }
+
+  /* --- No-label inputs with icons (Here/There) --- */
+  .formHint {
+    margin-top: 10px;
+    font-size: .92rem;
+    font-weight: 650;
+    color: #444;
+  }
+  .field { display:flex; align-items:center; gap:10px; }
+  .fieldIcon {
+    width: 34px; height: 38px;
+    display: grid; place-items: center;
+    border-radius: 10px;
+    background: #eef2f7;
+    border: 1px solid #d6dbe3;
+    font-size: 1.05rem;
+    line-height: 1;
+    flex: 0 0 auto;
+  }
+  .field input { flex: 1; }
 </style>
 </head>
 
@@ -98,26 +115,42 @@
 <div id="mainView">
   <div class="brand">
     <div class="brandTitle">WeatherBot</div>
-    <!-- CHANGE #1: Local -> Current -->
+    <!-- Local -> Current -->
     <div class="brandSub">Current conditions &amp; short-term outlook</div>
     <div class="brandTag">Know the weather before you go.</div>
   </div>
 
   <div class="panel">
-    <div class="row">
-      <!-- CHANGE #3: label inline with input -->
+    <div class="formHint">Compare Here vs There</div>
+
+    <div class="row" style="margin-top:10px;">
       <div class="field">
-        <label for="locA">Location A</label>
-        <input id="locA" value="Flagstaff">
+        <div class="fieldIcon" aria-hidden="true">📍</div>
+        <input
+          id="locA"
+          placeholder="Here — city, ZIP, or landmark"
+          aria-label="Here"
+          autocomplete="off"
+          spellcheck="false"
+        >
       </div>
+
       <div class="field">
-        <label for="locB">Location B</label>
-        <input id="locB" value="San Diego">
+        <div class="fieldIcon" aria-hidden="true">🎯</div>
+        <input
+          id="locB"
+          placeholder="There — city, ZIP, or landmark"
+          aria-label="There"
+          autocomplete="off"
+          spellcheck="false"
+        >
       </div>
+
       <div>
         <button id="compareBtn" onclick="compare()">Compare</button>
       </div>
     </div>
+
     <div id="status" class="small"></div>
   </div>
 
@@ -428,7 +461,7 @@ const CURRENT = {
   snowBAny: false
 };
 
-/* ========= Axis title style (CHANGE #4) ========= */
+/* Axis title style: larger + bolder */
 const AXIS_TITLE_FONT = { size: 16, weight: "800" };
 const AXIS_TITLE_COLOR = "#111";
 
@@ -454,12 +487,7 @@ function renderTempChart(dayLabels, aLabel, aSeries, bLabel, bSeries) {
       plugins: { legend: { display: false }, htmlLegend: { containerID: "htmlLegend" } },
       scales: {
         y: {
-          title: {
-            display: true,
-            text: "°F",
-            color: AXIS_TITLE_COLOR,
-            font: AXIS_TITLE_FONT
-          }
+          title: { display: true, text: "°F", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT }
         }
       }
     },
@@ -489,12 +517,7 @@ function renderWindChart(dayLabels, aLabel, aWind, bLabel, bWind) {
       plugins: { legend: { display: false }, htmlLegend: { containerID: "windLegend" } },
       scales: {
         y: {
-          title: {
-            display: true,
-            text: "MPH",
-            color: AXIS_TITLE_COLOR,
-            font: AXIS_TITLE_FONT
-          }
+          title: { display: true, text: "MPH", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT }
         }
       }
     },
@@ -502,12 +525,7 @@ function renderWindChart(dayLabels, aLabel, aWind, bLabel, bWind) {
   });
 }
 
-/* ========= Precip chart (LINES ONLY)
-   Legend order requested:
-   - Location A: solid + dotted
-   - Location B: solid + dotted
-   Snow icon shown ONLY on the location(s) where snow is possible this week.
-========= */
+/* ========= Precip chart (LINES ONLY) ========= */
 function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
   if (precipChartInstance) precipChartInstance.destroy();
 
@@ -576,11 +594,19 @@ function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
 }
 
 async function compare() {
+  const aText = (locA.value || "").trim();
+  const bText = (locB.value || "").trim();
+
+  if (!aText || !bText) {
+    status.textContent = "Enter Here and There, then tap Compare.";
+    return;
+  }
+
   status.textContent = "Loading…";
   compareBtn.disabled = true;
 
   try {
-    const [A, B] = await Promise.all([ geocode(locA.value), geocode(locB.value) ]);
+    const [A, B] = await Promise.all([ geocode(aText), geocode(bText) ]);
 
     const ALabel = placeLabel(A);
     const BLabel = placeLabel(B);
@@ -626,13 +652,10 @@ async function compare() {
     precipTitle.textContent = `${ALabel} vs ${BLabel} — Precip (Rain & Snow) (7-Day, starting today)`;
 
     // Determine snow possible THIS WEEK per location:
-    // any day where low ≤ 32°F AND precip > 0.
     const snowAAny = days.some((_, i) => (aData.lo?.[i] != null && aData.lo[i] <= 32 && (aData.precipIn?.[i] || 0) > 0));
-    // B lows aligned to A's day list:
     const bLoAligned = bTemp.lo;
     const snowBAny = days.some((_, i) => (bLoAligned?.[i] != null && bLoAligned[i] <= 32 && (bP.inches?.[i] || 0) > 0));
 
-    // Feed tooltip state + legend icon decision
     CURRENT.days = days;
     CURRENT.aLo = aData.lo;
     CURRENT.bLo = bLoAligned;
@@ -641,7 +664,6 @@ async function compare() {
     CURRENT.snowAAny = snowAAny;
     CURRENT.snowBAny = snowBAny;
 
-    // Now render (labels include ❄️ only for applicable location)
     renderPrecipChart(labels, ALabel, aP, BLabel, bP);
 
     status.textContent = "";
@@ -652,7 +674,8 @@ async function compare() {
   }
 }
 
-compare();
+/* No auto-compare on blank load */
+if ((locA.value || "").trim() && (locB.value || "").trim()) compare();
 </script>
 
 </body>
