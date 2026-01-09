@@ -9,58 +9,94 @@
 
 <style>
   body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f7f7f7; }
+  h2 { margin: 0; }
   h3 { margin: 0; }
-
   .panel, .card, .chartWrap {
     background: #fff; padding: 16px; border-radius: 14px;
     box-shadow: 0 2px 8px rgba(0,0,0,.08);
   }
 
-  .row { display:grid; grid-template-columns:1fr; gap:10px; }
-  @media (min-width:780px) {
-    .row { grid-template-columns:1fr 1fr auto; align-items:end; }
-  }
+  .row { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 780px) { .row { grid-template-columns: 1fr 1fr auto; align-items: end; } }
 
   input {
-    width:100%; padding:10px; border-radius:10px;
-    border:1px solid #ccc; font-size:1rem;
+    width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; font-size: 1rem;
   }
-  input::placeholder { color:#8a8a8a; font-weight:600; }
+  input::placeholder { color: #8a8a8a; font-weight: 600; }
 
   button {
-    padding:12px 14px; border-radius:10px; border:none;
-    background:#0077cc; color:#fff; font-weight:700; cursor:pointer;
+    padding: 12px 14px; border-radius: 10px; border: none;
+    background: #0077cc; color: #fff; font-weight: 700; cursor: pointer;
+  }
+  button:hover { opacity: .92; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 16px; margin-top: 14px; }
+  .temp { font-size: 1.75rem; font-weight: 900; }
+  .small { font-size: .9rem; color: #666; line-height: 1.25; margin-top: 6px; }
+
+  .actions { margin-top: 14px; }
+  .wideBtn { width: 100%; font-size: 1.1rem; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
+  .legend-item {
+    display:flex; align-items:center; gap:10px;
+    background:#f4f4f4; padding:6px 10px; border-radius:10px;
+    cursor:pointer; user-select:none;
+  }
+  .legend-line {
+    width: 70px;
+    height: 0;
+    border-top-width: 3px;
+    border-top-style: solid;
+    position: relative;
+  }
+  .legend-dot {
+    position:absolute; top:-6px; left:50%;
+    transform:translateX(-50%);
+    width:10px; height:10px;
+    background: currentColor;
+    border-radius:50%;
+  }
+  .legend-dot.diamond {
+    border-radius: 2px;
+    transform: translateX(-50%) rotate(45deg);
   }
 
-  .brandTitle { font-size:1.5rem; font-weight:900; }
-  .brandSub { font-size:.95rem; color:#444; font-weight:650; }
-  .brandTag { font-size:.9rem; color:#666; }
+  /* --- Header block --- */
+  .brand { margin: 0 0 10px 0; }
+  .brandTitle { font-size: 1.5rem; font-weight: 900; margin: 0; }
+  .brandSub { margin: 4px 0 0 0; font-size: .95rem; color: #444; font-weight: 650; }
+  .brandTag { margin: 4px 0 0 0; font-size: .95rem; color: #666; }
 
+  /* --- Leaving from / Going to labels --- */
+  .formHint { margin-top: 10px; font-size: .92rem; font-weight: 650; color: #444; }
   .fieldBlock { display:flex; flex-direction:column; gap:6px; }
-  .fieldLabel { font-size:.9rem; font-weight:750; color:#333; }
+  .fieldLabel { font-size: .92rem; font-weight: 750; color: #333; margin: 0; }
 
+  /* --- Google Maps link (SAME TAB, NO POPUP) --- */
   .mapsLink {
-    display:none;
-    margin-top:10px;
-    font-weight:800;
-    color:#0077cc;
-    text-decoration:none;
+    display: none;
+    margin-top: 10px;
+    font-weight: 800;
+    color: #0077cc;
+    text-decoration: none;
   }
-  .mapsLink:hover { text-decoration:underline; }
+  .mapsLink:hover { text-decoration: underline; }
 
-  .cards {
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-    gap:16px;
-    margin-top:14px;
+  /* --- Chart tabs --- */
+  .tabbar { display:flex; flex-wrap: wrap; gap:8px; margin-top: 12px; }
+  .tabbtn {
+    background:#e9eef6; color:#123; border:1px solid #d6dbe3;
+    padding:10px 12px; border-radius:10px; font-weight:800;
   }
+  .tabbtn:hover { opacity: 1; filter: brightness(0.98); }
+  .tabbtn.active { background:#0077cc; color:#fff; border-color:#0077cc; }
 
-  .temp { font-size:1.75rem; font-weight:900; }
-  .small { font-size:.9rem; color:#666; margin-top:6px; }
-
+  /* neutral “back” button */
   .backBtn {
-    background:#eef2f7; color:#123;
-    border:1px solid #d6dbe3; font-weight:800;
+    background:#eef2f7; color:#123; border:1px solid #d6dbe3;
+    font-weight: 800;
   }
 </style>
 </head>
@@ -75,15 +111,17 @@
   </div>
 
   <div class="panel">
+    <div class="formHint">Compare two places</div>
+
     <div class="row" style="margin-top:10px;">
       <div class="fieldBlock">
         <div class="fieldLabel">Leaving from</div>
-        <input id="locA" placeholder="City, ZIP, or landmark">
+        <input id="locA" placeholder="City, ZIP, or landmark" aria-label="Leaving from" autocomplete="off" spellcheck="false">
       </div>
 
       <div class="fieldBlock">
         <div class="fieldLabel">Going to</div>
-        <input id="locB" placeholder="City, ZIP, or landmark">
+        <input id="locB" placeholder="City, ZIP, or landmark" aria-label="Going to" autocomplete="off" spellcheck="false">
       </div>
 
       <div>
@@ -91,33 +129,168 @@
       </div>
     </div>
 
-    <!-- PURE ANCHOR: no popup risk -->
-    <a id="mapsLink" class="mapsLink">
-      Open route in Google Maps →
-    </a>
+    <!-- PURE ANCHOR: same tab, no popup blocker -->
+    <a id="mapsLink" class="mapsLink">Open route in Google Maps →</a>
 
-    <div class="small">Opens in browser · use Back to return</div>
     <div id="status" class="small"></div>
   </div>
 
   <div class="cards">
     <div class="card">
       <h3 id="aTitle">—</h3>
+      <div id="aEcho" class="small">—</div>
       <div id="aToday" class="temp">—</div>
     </div>
     <div class="card">
       <h3 id="bTitle">—</h3>
+      <div id="bEcho" class="small">—</div>
       <div id="bToday" class="temp">—</div>
     </div>
+  </div>
+
+  <div class="actions">
+    <button class="wideBtn" onclick="showTempChart()">View 7-Day Outlook</button>
+  </div>
+</div>
+
+<!-- Temperature chart view -->
+<div id="chartView" style="display:none;">
+  <button class="backBtn" onclick="showMain()">← Back to Today</button>
+
+  <div class="chartWrap" style="margin-top:12px;">
+    <div class="tabbar">
+      <button id="tabTemp" class="tabbtn active" onclick="showTempChart()">🌡️ Temperature</button>
+      <button id="tabWind" class="tabbtn" onclick="showWindChart()">💨 Wind</button>
+      <button id="tabPrecip" class="tabbtn" onclick="showPrecipChart()">🌧️ Precip</button>
+    </div>
+
+    <h3 id="chartTitle" style="margin-top:12px;">—</h3>
+    <canvas id="comboChart" height="260"></canvas>
+    <div id="htmlLegend" class="legend"></div>
+    <p class="small">Color = location · Solid = high · Dotted = low</p>
+  </div>
+</div>
+
+<!-- Wind chart view -->
+<div id="windView" style="display:none;">
+  <button class="backBtn" onclick="showMain()">← Back to Today</button>
+
+  <div class="chartWrap" style="margin-top:12px;">
+    <div class="tabbar">
+      <button id="tabTemp2" class="tabbtn" onclick="showTempChart()">🌡️ Temperature</button>
+      <button id="tabWind2" class="tabbtn active" onclick="showWindChart()">💨 Wind</button>
+      <button id="tabPrecip2" class="tabbtn" onclick="showPrecipChart()">🌧️ Precip</button>
+    </div>
+
+    <h3 id="windTitle" style="margin-top:12px;">—</h3>
+    <canvas id="windChart" height="260"></canvas>
+    <div id="windLegend" class="legend"></div>
+    <p class="small">Color = location · Solid = peak · Dotted = average</p>
+  </div>
+</div>
+
+<!-- Precip chart view (LINES ONLY) -->
+<div id="precipView" style="display:none;">
+  <button class="backBtn" onclick="showMain()">← Back to Today</button>
+
+  <div class="chartWrap" style="margin-top:12px;">
+    <div class="tabbar">
+      <button id="tabTemp3" class="tabbtn" onclick="showTempChart()">🌡️ Temperature</button>
+      <button id="tabWind3" class="tabbtn" onclick="showWindChart()">💨 Wind</button>
+      <button id="tabPrecip3" class="tabbtn active" onclick="showPrecipChart()">🌧️ Precip</button>
+    </div>
+
+    <h3 id="precipTitle" style="margin-top:12px;">—</h3>
+    <canvas id="precipChart" height="260"></canvas>
+    <div id="precipLegend" class="legend"></div>
+    <p class="small">Precip (Rain &amp; Snow) · Solid = total precip (in) · Dotted = chance (%)</p>
   </div>
 </div>
 
 <script>
-/* ---------- Google Maps SAFE LINK ---------- */
+/* ========= US State full-name -> 2-letter ========= */
+const US_STATES = {
+  Alabama:"AL", Alaska:"AK", Arizona:"AZ", Arkansas:"AR", California:"CA",
+  Colorado:"CO", Connecticut:"CT", Delaware:"DE", Florida:"FL", Georgia:"GA",
+  Hawaii:"HI", Idaho:"ID", Illinois:"IL", Indiana:"IN", Iowa:"IA", Kansas:"KS",
+  Kentucky:"KY", Louisiana:"LA", Maine:"ME", Maryland:"MD", Massachusetts:"MA",
+  Michigan:"MI", Minnesota:"MN", Mississippi:"MS", Missouri:"MO", Montana:"MT",
+  Nebraska:"NE", Nevada:"NV", "New Hampshire":"NH", "New Jersey":"NJ",
+  "New Mexico":"NM", "New York":"NY", "North Carolina":"NC", "North Dakota":"ND",
+  Ohio:"OH", Oklahoma:"OK", Oregon:"OR", Pennsylvania:"PA", "Rhode Island":"RI",
+  "South Carolina":"SC", "South Dakota":"SD", Tennessee:"TN", Texas:"TX",
+  Utah:"UT", Vermont:"VT", Virginia:"VA", Washington:"WA",
+  "West Virginia":"WV", Wisconsin:"WI", Wyoming:"WY"
+};
+
+function placeLabel(r) {
+  if (r.country === "United States" && r.admin1 && US_STATES[r.admin1]) {
+    return `${r.name}, ${US_STATES[r.admin1]}`;
+  }
+  if (r.admin1) return `${r.name}, ${r.admin1}`;
+  return r.name;
+}
+
+/* ========= View toggles ========= */
+function showMain() {
+  chartView.style.display = "none";
+  windView.style.display = "none";
+  precipView.style.display = "none";
+  mainView.style.display = "block";
+}
+
+function showTempChart() {
+  mainView.style.display = "none";
+  windView.style.display = "none";
+  precipView.style.display = "none";
+  chartView.style.display = "block";
+  setTabActive("temp");
+}
+
+function showWindChart() {
+  mainView.style.display = "none";
+  chartView.style.display = "none";
+  precipView.style.display = "none";
+  windView.style.display = "block";
+  setTabActive("wind");
+}
+
+function showPrecipChart() {
+  mainView.style.display = "none";
+  chartView.style.display = "none";
+  windView.style.display = "none";
+  precipView.style.display = "block";
+  setTabActive("precip");
+}
+
+function setTabActive(which) {
+  const isTemp = which === "temp";
+  const isWind = which === "wind";
+  const isPrecip = which === "precip";
+
+  if (typeof tabTemp !== "undefined") tabTemp.classList.toggle("active", isTemp);
+  if (typeof tabWind !== "undefined") tabWind.classList.toggle("active", isWind);
+  if (typeof tabPrecip !== "undefined") tabPrecip.classList.toggle("active", isPrecip);
+
+  if (typeof tabTemp2 !== "undefined") tabTemp2.classList.toggle("active", isTemp);
+  if (typeof tabWind2 !== "undefined") tabWind2.classList.toggle("active", isWind);
+  if (typeof tabPrecip2 !== "undefined") tabPrecip2.classList.toggle("active", isPrecip);
+
+  if (typeof tabTemp3 !== "undefined") tabTemp3.classList.toggle("active", isTemp);
+  if (typeof tabWind3 !== "undefined") tabWind3.classList.toggle("active", isWind);
+  if (typeof tabPrecip3 !== "undefined") tabPrecip3.classList.toggle("active", isPrecip);
+}
+
+/* ========= Google Maps link (SAME TAB, NO POPUP) ========= */
+function buildGoogleMapsDirLink(originText, destText) {
+  const origin = encodeURIComponent(originText.trim());
+  const dest = encodeURIComponent(destText.trim());
+  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}`;
+}
 
 function updateMapsLink() {
-  const a = locA.value.trim();
-  const b = locB.value.trim();
+  const a = (locA.value || "").trim();
+  const b = (locB.value || "").trim();
 
   if (!a || !b) {
     mapsLink.style.display = "none";
@@ -125,70 +298,369 @@ function updateMapsLink() {
     return;
   }
 
-  mapsLink.href =
-    "https://www.google.com/maps/dir/?api=1"
-    + "&origin=" + encodeURIComponent(a)
-    + "&destination=" + encodeURIComponent(b);
-
+  mapsLink.href = buildGoogleMapsDirLink(a, b); // same tab
   mapsLink.style.display = "inline-block";
 }
 
-locA.addEventListener("input", updateMapsLink);
-locB.addEventListener("input", updateMapsLink);
-
-/* ---------- Weather logic (unchanged core) ---------- */
-
+/* ========= Geocode ========= */
 async function geocode(name) {
   const r = await fetch(
-    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1`
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=en&format=json`
   );
   const j = await r.json();
-  if (!j.results?.length) throw new Error("Location not found");
+  if (!j.results?.length) throw new Error(`Location not found: ${name}`);
   return j.results[0];
 }
 
-async function getToday(lat, lon) {
-  const r = await fetch(
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&temperature_unit=fahrenheit`
-  );
+/* ========= Timezone-correct "today" (YYYY-MM-DD) ========= */
+function todayInTimeZone(tz) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+}
+
+/* ========= Forecast (start TODAY) ========= */
+async function get7DayFromToday(lat, lon) {
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&daily=temperature_2m_max,temperature_2m_min,wind_speed_10m_max,wind_speed_10m_mean,precipitation_sum,precipitation_probability_max` +
+    `&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto`;
+
+  const r = await fetch(url);
   const j = await r.json();
-  return Math.round(j.current.temperature_2m);
+
+  const tz = j.timezone || "UTC";
+  const today = todayInTimeZone(tz);
+
+  const days = [];
+  const hi = [];
+  const lo = [];
+  const windPeak = [];
+  const windAvg = [];
+  const precipIn = [];
+  const precipProb = [];
+
+  const t  = j.daily.time;
+  const h  = j.daily.temperature_2m_max;
+  const l  = j.daily.temperature_2m_min;
+  const wp = j.daily.wind_speed_10m_max;
+  const wa = j.daily.wind_speed_10m_mean;
+  const pr = j.daily.precipitation_sum;
+  const pp = j.daily.precipitation_probability_max;
+
+  for (let i = 0; i < t.length; i++) {
+    if (t[i] >= today) {
+      days.push(t[i]);
+      hi.push(Math.round(h[i]));
+      lo.push(Math.round(l[i]));
+      windPeak.push(Math.round(wp[i]));
+      windAvg.push(Math.round(wa[i]));
+      precipIn.push(pr?.[i] != null ? Math.round(pr[i] * 100) / 100 : null);
+      precipProb.push(pp?.[i] != null ? Math.round(pp[i]) : null);
+    }
+    if (days.length === 7) break;
+  }
+
+  if (days.length < 7) {
+    for (let i = 0; i < t.length && days.length < 7; i++) {
+      if (!days.includes(t[i])) {
+        days.push(t[i]);
+        hi.push(Math.round(h[i]));
+        lo.push(Math.round(l[i]));
+        windPeak.push(Math.round(wp[i]));
+        windAvg.push(Math.round(wa[i]));
+        precipIn.push(pr?.[i] != null ? Math.round(pr[i] * 100) / 100 : null);
+        precipProb.push(pp?.[i] != null ? Math.round(pp[i]) : null);
+      }
+    }
+  }
+
+  return { days, hi, lo, windPeak, windAvg, precipIn, precipProb, tz };
+}
+
+/* ========= Align B to A's day labels ========= */
+function alignToDays(days, data) {
+  const mapHi = new Map(data.days.map((d, i) => [d, data.hi[i]]));
+  const mapLo = new Map(data.days.map((d, i) => [d, data.lo[i]]));
+  return {
+    hi: days.map(d => mapHi.has(d) ? mapHi.get(d) : null),
+    lo: days.map(d => mapLo.has(d) ? mapLo.get(d) : null)
+  };
+}
+
+function alignWindToDays(days, data) {
+  const mapPeak = new Map(data.days.map((d, i) => [d, data.windPeak[i]]));
+  const mapAvg  = new Map(data.days.map((d, i) => [d, data.windAvg[i]]));
+  return {
+    peak: days.map(d => mapPeak.has(d) ? mapPeak.get(d) : null),
+    avg:  days.map(d => mapAvg.has(d)  ? mapAvg.get(d)  : null)
+  };
+}
+
+function alignPrecipToDays(days, data) {
+  const mapIn   = new Map(data.days.map((d, i) => [d, data.precipIn[i]]));
+  const mapProb = new Map(data.days.map((d, i) => [d, data.precipProb[i]]));
+  return {
+    inches: days.map(d => mapIn.has(d) ? mapIn.get(d) : null),
+    prob:   days.map(d => mapProb.has(d) ? mapProb.get(d) : null)
+  };
+}
+
+/* ========= HTML legend plugin ========= */
+const htmlLegendPlugin = {
+  id: "htmlLegend",
+  afterUpdate(chart, args, opts) {
+    const el = document.getElementById(opts.containerID);
+    el.innerHTML = "";
+
+    chart.data.datasets.forEach((ds, i) => {
+      const row = document.createElement("div");
+      row.className = "legend-item";
+
+      const line = document.createElement("div");
+      line.className = "legend-line";
+      line.style.borderTopColor = ds.borderColor;
+      line.style.color = ds.borderColor;
+
+      const isDashed = Array.isArray(ds.borderDash) && ds.borderDash.length;
+      line.style.borderTopStyle = isDashed ? "dotted" : "solid";
+
+      const dot = document.createElement("div");
+      dot.className = "legend-dot";
+      if (ds.pointStyle === "rectRot") dot.classList.add("diamond");
+      line.appendChild(dot);
+
+      const text = document.createElement("span");
+      text.textContent = ds.label;
+
+      row.onclick = () => {
+        chart.toggleDataVisibility(i);
+        chart.update();
+      };
+
+      row.appendChild(line);
+      row.appendChild(text);
+      el.appendChild(row);
+    });
+  }
+};
+
+let tempChart;
+let windChartInstance;
+let precipChartInstance;
+
+/* ===== state used by precip tooltip hint ===== */
+const CURRENT = {
+  days: null,
+  aLo: null,
+  bLo: null,
+  aPIn: null,
+  bPIn: null,
+  snowAAny: false,
+  snowBAny: false
+};
+
+/* Axis title style: larger + bolder */
+const AXIS_TITLE_FONT = { size: 16, weight: "800" };
+const AXIS_TITLE_COLOR = "#111";
+
+function renderTempChart(dayLabels, aLabel, aSeries, bLabel, bSeries) {
+  if (tempChart) tempChart.destroy();
+
+  const COLOR_A = "#1f77b4";
+  const COLOR_B = "#ff7f0e";
+
+  tempChart = new Chart(comboChart, {
+    type: "line",
+    data: {
+      labels: dayLabels,
+      datasets: [
+        { label: `${aLabel} High`, data: aSeries.hi, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3 },
+        { label: `${aLabel} Low`,  data: aSeries.lo, borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3 },
+        { label: `${bLabel} High`, data: bSeries.hi, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot" },
+        { label: `${bLabel} Low`,  data: bSeries.lo, borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot" }
+      ]
+    },
+    options: {
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, htmlLegend: { containerID: "htmlLegend" } },
+      scales: {
+        y: { title: { display: true, text: "°F", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT } }
+      }
+    },
+    plugins: [htmlLegendPlugin]
+  });
+}
+
+function renderWindChart(dayLabels, aLabel, aWind, bLabel, bWind) {
+  if (windChartInstance) windChartInstance.destroy();
+
+  const COLOR_A = "#1f77b4";
+  const COLOR_B = "#ff7f0e";
+
+  windChartInstance = new Chart(windChart, {
+    type: "line",
+    data: {
+      labels: dayLabels,
+      datasets: [
+        { label: `${aLabel} Peak`, data: aWind.peak, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3 },
+        { label: `${aLabel} Avg`,  data: aWind.avg,  borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3 },
+        { label: `${bLabel} Peak`, data: bWind.peak, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot" },
+        { label: `${bLabel} Avg`,  data: bWind.avg,  borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot" }
+      ]
+    },
+    options: {
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, htmlLegend: { containerID: "windLegend" } },
+      scales: {
+        y: { title: { display: true, text: "MPH", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT } }
+      }
+    },
+    plugins: [htmlLegendPlugin]
+  });
+}
+
+function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
+  if (precipChartInstance) precipChartInstance.destroy();
+
+  const COLOR_A = "#1f77b4";
+  const COLOR_B = "#ff7f0e";
+
+  const aSnow = CURRENT.snowAAny ? " ❄️" : "";
+  const bSnow = CURRENT.snowBAny ? " ❄️" : "";
+
+  precipChartInstance = new Chart(precipChart, {
+    type: "line",
+    data: {
+      labels: dayLabels,
+      datasets: [
+        { label: `${aLabel} Precip (in)${aSnow}`, data: aP.inches, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3, yAxisID: "y" },
+        { label: `${aLabel} Chance (%)${aSnow}`, data: aP.prob,   borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3, yAxisID: "y1" },
+        { label: `${bLabel} Precip (in)${bSnow}`, data: bP.inches, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y" },
+        { label: `${bLabel} Chance (%)${bSnow}`, data: bP.prob,   borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y1" }
+      ]
+    },
+    options: {
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        htmlLegend: { containerID: "precipLegend" },
+        tooltip: {
+          callbacks: {
+            afterBody: (items) => {
+              const idx = items?.[0]?.dataIndex;
+              if (idx == null) return "";
+              const aLow = CURRENT.aLo?.[idx];
+              const bLow = CURRENT.bLo?.[idx];
+              const aIn  = CURRENT.aPIn?.[idx];
+              const bIn  = CURRENT.bPIn?.[idx];
+
+              const snowA = (aLow != null && aLow <= 32 && (aIn || 0) > 0);
+              const snowB = (bLow != null && bLow <= 32 && (bIn || 0) > 0);
+
+              if (snowA && snowB) return "❄️ Snow possible at both locations (low ≤ 32°F + precip)";
+              if (snowA) return "❄️ Snow possible at Leaving from (low ≤ 32°F + precip)";
+              if (snowB) return "❄️ Snow possible at Going to (low ≤ 32°F + precip)";
+              return "";
+            }
+          }
+        }
+      },
+      scales: {
+        y:  { title: { display: true, text: "INCHES", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT }, beginAtZero: true },
+        y1: { title: { display: true, text: "%", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT }, beginAtZero: true, max: 100, position: "right", grid: { drawOnChartArea: false } }
+      }
+    },
+    plugins: [htmlLegendPlugin]
+  });
 }
 
 async function compare() {
-  const aText = locA.value.trim();
-  const bText = locB.value.trim();
+  const aText = (locA.value || "").trim();
+  const bText = (locB.value || "").trim();
 
   updateMapsLink();
 
   if (!aText || !bText) {
-    status.textContent = "Enter both locations.";
+    status.textContent = "Enter Leaving from and Going to, then tap Compare.";
     return;
   }
 
   status.textContent = "Loading…";
+  compareBtn.disabled = true;
 
   try {
-    const [A, B] = await Promise.all([
-      geocode(aText),
-      geocode(bText)
+    const [A, B] = await Promise.all([ geocode(aText), geocode(bText) ]);
+
+    const ALabel = placeLabel(A);
+    const BLabel = placeLabel(B);
+
+    aTitle.textContent = ALabel;
+    bTitle.textContent = BLabel;
+
+    aEcho.textContent = `${ALabel} (${A.latitude.toFixed(4)}, ${A.longitude.toFixed(4)})`;
+    bEcho.textContent = `${BLabel} (${B.latitude.toFixed(4)}, ${B.longitude.toFixed(4)})`;
+
+    const [aData, bData] = await Promise.all([
+      get7DayFromToday(A.latitude, A.longitude),
+      get7DayFromToday(B.latitude, B.longitude)
     ]);
 
-    const [aTemp, bTemp] = await Promise.all([
-      getToday(A.latitude, A.longitude),
-      getToday(B.latitude, B.longitude)
-    ]);
+    const days = aData.days;
 
-    aTitle.textContent = A.name;
-    bTitle.textContent = B.name;
-    aToday.textContent = aTemp + "°";
-    bToday.textContent = bTemp + "°";
+    const aTemp = { hi: aData.hi, lo: aData.lo };
+    const bTemp = alignToDays(days, bData);
+
+    aToday.textContent = `${aTemp.hi[0]}° / ${aTemp.lo[0]}°`;
+    bToday.textContent = `${bTemp.hi[0] ?? "—"}° / ${bTemp.lo[0] ?? "—"}°`;
+
+    const labels = days.map(d => {
+      const dt = new Date(d + "T12:00:00");
+      return dt.toLocaleDateString([], { weekday: "short" });
+    });
+
+    chartTitle.textContent = `${ALabel} vs ${BLabel} — 7-Day (starting today)`;
+    renderTempChart(labels, ALabel, aTemp, BLabel, bTemp);
+
+    const aWind = { peak: aData.windPeak, avg: aData.windAvg };
+    const bWind = alignWindToDays(days, bData);
+    windTitle.textContent = `${ALabel} vs ${BLabel} — Wind (7-Day, starting today)`;
+    renderWindChart(labels, ALabel, aWind, BLabel, bWind);
+
+    const aP = { inches: aData.precipIn, prob: aData.precipProb };
+    const bP = alignPrecipToDays(days, bData);
+
+    precipTitle.textContent = `${ALabel} vs ${BLabel} — Precip (Rain & Snow) (7-Day, starting today)`;
+
+    const snowAAny = days.some((_, i) => (aData.lo?.[i] != null && aData.lo[i] <= 32 && (aData.precipIn?.[i] || 0) > 0));
+    const bLoAligned = bTemp.lo;
+    const snowBAny = days.some((_, i) => (bLoAligned?.[i] != null && bLoAligned[i] <= 32 && (bP.inches?.[i] || 0) > 0));
+
+    CURRENT.days = days;
+    CURRENT.aLo = aData.lo;
+    CURRENT.bLo = bLoAligned;
+    CURRENT.aPIn = aData.precipIn;
+    CURRENT.bPIn = bP.inches;
+    CURRENT.snowAAny = snowAAny;
+    CURRENT.snowBAny = snowBAny;
+
+    renderPrecipChart(labels, ALabel, aP, BLabel, bP);
 
     status.textContent = "";
   } catch (e) {
-    status.textContent = e.message;
+    status.textContent = e?.message || String(e);
+  } finally {
+    compareBtn.disabled = false;
   }
 }
+
+/* Wire up the maps link to input edits */
+locA.addEventListener("input", updateMapsLink);
+locB.addEventListener("input", updateMapsLink);
+updateMapsLink();
 </script>
 
 </body>
