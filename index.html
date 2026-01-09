@@ -15,7 +15,6 @@
     background: #fff; padding: 16px; border-radius: 14px;
     box-shadow: 0 2px 8px rgba(0,0,0,.08);
   }
-
   .row { display: grid; grid-template-columns: 1fr; gap: 10px; }
   @media (min-width: 780px) { .row { grid-template-columns: 1fr 1fr auto; align-items: end; } }
 
@@ -69,8 +68,7 @@
   .brandSub { margin: 4px 0 0 0; font-size: .95rem; color: #444; font-weight: 650; }
   .brandTag { margin: 4px 0 0 0; font-size: .95rem; color: #666; }
 
-  /* --- Leaving from / Going to labels --- */
-  .formHint { margin-top: 10px; font-size: .92rem; font-weight: 650; color: #444; }
+  /* --- Leaving from / Destination labels --- */
   .fieldBlock { display:flex; flex-direction:column; gap:6px; }
   .fieldLabel { font-size: .92rem; font-weight: 750; color: #333; margin: 0; }
 
@@ -98,6 +96,9 @@
     background:#eef2f7; color:#123; border:1px solid #d6dbe3;
     font-weight: 800;
   }
+
+  /* Demo gray styling for initial cards */
+  .demo { color: #9a9a9a; font-style: italic; }
 </style>
 </head>
 
@@ -111,8 +112,6 @@
   </div>
 
   <div class="panel">
-    <div class="formHint">Compare two places</div>
-
     <div class="row" style="margin-top:10px;">
       <div class="fieldBlock">
         <div class="fieldLabel">Leaving from</div>
@@ -120,8 +119,8 @@
       </div>
 
       <div class="fieldBlock">
-        <div class="fieldLabel">Going to</div>
-        <input id="locB" placeholder="City, ZIP, or landmark" aria-label="Going to" autocomplete="off" spellcheck="false">
+        <div class="fieldLabel">Destination</div>
+        <input id="locB" placeholder="City, ZIP, or landmark" aria-label="Destination" autocomplete="off" spellcheck="false">
       </div>
 
       <div>
@@ -137,14 +136,12 @@
 
   <div class="cards">
     <div class="card">
-      <h3 id="aTitle">—</h3>
-      <div id="aEcho" class="small">—</div>
-      <div id="aToday" class="temp">—</div>
+      <h3 id="aTitle" class="demo">Los Angeles, CA</h3>
+      <div id="aToday" class="temp demo">72° / 58°</div>
     </div>
     <div class="card">
-      <h3 id="bTitle">—</h3>
-      <div id="bEcho" class="small">—</div>
-      <div id="bToday" class="temp">—</div>
+      <h3 id="bTitle" class="demo">New York City, NY</h3>
+      <div id="bToday" class="temp demo">65° / 50°</div>
     </div>
   </div>
 
@@ -563,7 +560,7 @@ function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
 
               if (snowA && snowB) return "❄️ Snow possible at both locations (low ≤ 32°F + precip)";
               if (snowA) return "❄️ Snow possible at Leaving from (low ≤ 32°F + precip)";
-              if (snowB) return "❄️ Snow possible at Going to (low ≤ 32°F + precip)";
+              if (snowB) return "❄️ Snow possible at Destination (low ≤ 32°F + precip)";
               return "";
             }
           }
@@ -585,7 +582,7 @@ async function compare() {
   updateMapsLink();
 
   if (!aText || !bText) {
-    status.textContent = "Enter Leaving from and Going to, then tap Compare.";
+    status.textContent = "Enter Leaving from and Destination, then tap Compare.";
     return;
   }
 
@@ -598,11 +595,14 @@ async function compare() {
     const ALabel = placeLabel(A);
     const BLabel = placeLabel(B);
 
+    // Remove demo styling once real data loads
+    aTitle.classList.remove("demo");
+    aToday.classList.remove("demo");
+    bTitle.classList.remove("demo");
+    bToday.classList.remove("demo");
+
     aTitle.textContent = ALabel;
     bTitle.textContent = BLabel;
-
-    aEcho.textContent = `${ALabel} (${A.latitude.toFixed(4)}, ${A.longitude.toFixed(4)})`;
-    bEcho.textContent = `${BLabel} (${B.latitude.toFixed(4)}, ${B.longitude.toFixed(4)})`;
 
     const [aData, bData] = await Promise.all([
       get7DayFromToday(A.latitude, A.longitude),
