@@ -88,25 +88,30 @@
     font-weight: 800;
   }
 
-  /* --- No-label inputs with icons (Here/There) --- */
+  /* --- Leaving from / Going to labels (compact) --- */
   .formHint {
     margin-top: 10px;
     font-size: .92rem;
     font-weight: 650;
     color: #444;
   }
-  .field { display:flex; align-items:center; gap:10px; }
-  .fieldIcon {
-    width: 34px; height: 38px;
-    display: grid; place-items: center;
-    border-radius: 10px;
-    background: #eef2f7;
-    border: 1px solid #d6dbe3;
-    font-size: 1.05rem;
-    line-height: 1;
-    flex: 0 0 auto;
+  .fieldBlock { display:flex; flex-direction:column; gap:6px; }
+  .fieldLabel {
+    font-size: .92rem;
+    font-weight: 750;
+    color: #333;
+    margin: 0;
   }
-  .field input { flex: 1; }
+
+  /* --- Google Maps link --- */
+  .mapsLink {
+    display: none;
+    margin-top: 10px;
+    font-weight: 800;
+    color: #0077cc;
+    text-decoration: none;
+  }
+  .mapsLink:hover { text-decoration: underline; }
 </style>
 </head>
 
@@ -115,32 +120,31 @@
 <div id="mainView">
   <div class="brand">
     <div class="brandTitle">WeatherBot</div>
-    <!-- Local -> Current -->
     <div class="brandSub">Current conditions &amp; short-term outlook</div>
     <div class="brandTag">Know the weather before you go.</div>
   </div>
 
   <div class="panel">
-    <div class="formHint">Compare Here vs There</div>
+    <div class="formHint">Compare two places</div>
 
     <div class="row" style="margin-top:10px;">
-      <div class="field">
-        <div class="fieldIcon" aria-hidden="true">📍</div>
+      <div class="fieldBlock">
+        <div class="fieldLabel">Leaving from</div>
         <input
           id="locA"
-          placeholder="Here — city, ZIP, or landmark"
-          aria-label="Here"
+          placeholder="City, ZIP, or landmark"
+          aria-label="Leaving from"
           autocomplete="off"
           spellcheck="false"
         >
       </div>
 
-      <div class="field">
-        <div class="fieldIcon" aria-hidden="true">🎯</div>
+      <div class="fieldBlock">
+        <div class="fieldLabel">Going to</div>
         <input
           id="locB"
-          placeholder="There — city, ZIP, or landmark"
-          aria-label="There"
+          placeholder="City, ZIP, or landmark"
+          aria-label="Going to"
           autocomplete="off"
           spellcheck="false"
         >
@@ -150,6 +154,10 @@
         <button id="compareBtn" onclick="compare()">Compare</button>
       </div>
     </div>
+
+    <a id="mapsLink" class="mapsLink" href="#" target="_blank" rel="noopener noreferrer">
+      Open route in Google Maps →
+    </a>
 
     <div id="status" class="small"></div>
   </div>
@@ -298,6 +306,27 @@ function setTabActive(which) {
   if (typeof tabTemp3 !== "undefined") tabTemp3.classList.toggle("active", isTemp);
   if (typeof tabWind3 !== "undefined") tabWind3.classList.toggle("active", isWind);
   if (typeof tabPrecip3 !== "undefined") tabPrecip3.classList.toggle("active", isPrecip);
+}
+
+/* ========= Google Maps link (shown only when both inputs have text) ========= */
+function buildGoogleMapsDirLink(originText, destText) {
+  const origin = encodeURIComponent(originText.trim());
+  const dest = encodeURIComponent(destText.trim());
+  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}`;
+}
+
+function updateMapsLink() {
+  const a = (locA.value || "").trim();
+  const b = (locB.value || "").trim();
+
+  if (!a || !b) {
+    mapsLink.style.display = "none";
+    mapsLink.href = "#";
+    return;
+  }
+
+  mapsLink.href = buildGoogleMapsDirLink(a, b);
+  mapsLink.style.display = "inline-block";
 }
 
 /* ========= Geocode ========= */
@@ -486,9 +515,7 @@ function renderTempChart(dayLabels, aLabel, aSeries, bLabel, bSeries) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: { display: false }, htmlLegend: { containerID: "htmlLegend" } },
       scales: {
-        y: {
-          title: { display: true, text: "°F", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT }
-        }
+        y: { title: { display: true, text: "°F", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT } }
       }
     },
     plugins: [htmlLegendPlugin]
@@ -516,16 +543,13 @@ function renderWindChart(dayLabels, aLabel, aWind, bLabel, bWind) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: { display: false }, htmlLegend: { containerID: "windLegend" } },
       scales: {
-        y: {
-          title: { display: true, text: "MPH", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT }
-        }
+        y: { title: { display: true, text: "MPH", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT } }
       }
     },
     plugins: [htmlLegendPlugin]
   });
 }
 
-/* ========= Precip chart (LINES ONLY) ========= */
 function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
   if (precipChartInstance) precipChartInstance.destroy();
 
@@ -540,11 +564,8 @@ function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
     data: {
       labels: dayLabels,
       datasets: [
-        // A first (solid + dotted)
         { label: `${aLabel} Precip (in)${aSnow}`, data: aP.inches, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3, yAxisID: "y" },
         { label: `${aLabel} Chance (%)${aSnow}`, data: aP.prob,   borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3, yAxisID: "y1" },
-
-        // B second (solid + dotted)
         { label: `${bLabel} Precip (in)${bSnow}`, data: bP.inches, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y" },
         { label: `${bLabel} Chance (%)${bSnow}`, data: bP.prob,   borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y1" }
       ]
@@ -568,25 +589,16 @@ function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
               const snowB = (bLow != null && bLow <= 32 && (bIn || 0) > 0);
 
               if (snowA && snowB) return "❄️ Snow possible at both locations (low ≤ 32°F + precip)";
-              if (snowA) return "❄️ Snow possible at Location A (low ≤ 32°F + precip)";
-              if (snowB) return "❄️ Snow possible at Location B (low ≤ 32°F + precip)";
+              if (snowA) return "❄️ Snow possible at Leaving from (low ≤ 32°F + precip)";
+              if (snowB) return "❄️ Snow possible at Going to (low ≤ 32°F + precip)";
               return "";
             }
           }
         }
       },
       scales: {
-        y:  {
-          title: { display: true, text: "INCHES", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT },
-          beginAtZero: true
-        },
-        y1: {
-          title: { display: true, text: "%", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT },
-          beginAtZero: true,
-          max: 100,
-          position: "right",
-          grid: { drawOnChartArea: false }
-        }
+        y:  { title: { display: true, text: "INCHES", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT }, beginAtZero: true },
+        y1: { title: { display: true, text: "%", color: AXIS_TITLE_COLOR, font: AXIS_TITLE_FONT }, beginAtZero: true, max: 100, position: "right", grid: { drawOnChartArea: false } }
       }
     },
     plugins: [htmlLegendPlugin]
@@ -597,8 +609,10 @@ async function compare() {
   const aText = (locA.value || "").trim();
   const bText = (locB.value || "").trim();
 
+  updateMapsLink();
+
   if (!aText || !bText) {
-    status.textContent = "Enter Here and There, then tap Compare.";
+    status.textContent = "Enter Leaving from and Going to, then tap Compare.";
     return;
   }
 
@@ -651,7 +665,6 @@ async function compare() {
 
     precipTitle.textContent = `${ALabel} vs ${BLabel} — Precip (Rain & Snow) (7-Day, starting today)`;
 
-    // Determine snow possible THIS WEEK per location:
     const snowAAny = days.some((_, i) => (aData.lo?.[i] != null && aData.lo[i] <= 32 && (aData.precipIn?.[i] || 0) > 0));
     const bLoAligned = bTemp.lo;
     const snowBAny = days.some((_, i) => (bLoAligned?.[i] != null && bLoAligned[i] <= 32 && (bP.inches?.[i] || 0) > 0));
@@ -674,8 +687,10 @@ async function compare() {
   }
 }
 
-/* No auto-compare on blank load */
-if ((locA.value || "").trim() && (locB.value || "").trim()) compare();
+/* Wire up the maps link to input edits */
+locA.addEventListener("input", updateMapsLink);
+locB.addEventListener("input", updateMapsLink);
+updateMapsLink(); // on load
 </script>
 
 </body>
