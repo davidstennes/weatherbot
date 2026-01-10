@@ -95,21 +95,13 @@
   .brandTag { margin: 4px 0 0 0; font-size: .95rem; color: #666; }
 
   /* Leaving from / Destination on SAME LINE as input */
-  .fieldRow {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+  .fieldRow { display: flex; align-items: center; gap: 10px; }
   .fieldLabelInline {
-    font-size: .92rem;
-    font-weight: 800;
-    color: #333;
+    font-size: .92rem; font-weight: 800; color: #333;
     white-space: nowrap;
-    min-width: 108px; /* keeps labels aligned */
+    min-width: 108px;
   }
-  @media (max-width: 420px) {
-    .fieldLabelInline { min-width: 96px; }
-  }
+  @media (max-width: 420px) { .fieldLabelInline { min-width: 96px; } }
 
   /* Google Maps link (same tab, no popup) */
   .mapsLink {
@@ -136,7 +128,52 @@
   }
 
   /* demo styling */
-  .demo { color: #9a9a9a; font-style: italic; }
+  .demo { color: #8f8f8f; font-style: italic; }
+
+  /* clickable city */
+  .cityLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: #123;
+    cursor: pointer;
+    text-align: left;
+  }
+  .cityLink:hover { text-decoration: underline; }
+  .cityLinkHint {
+    font-size: .85rem;
+    color: #777;
+    font-weight: 650;
+  }
+
+  /* coming soon panel */
+  .soonPanel {
+    display: none;
+    margin-top: 12px;
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .soonHeader {
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .soonTitle { font-weight: 900; margin: 0; }
+  .soonClose {
+    background:#eef2f7; color:#123; border:1px solid #d6dbe3;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-weight: 800;
+  }
+  .soonList { margin: 10px 0 0 18px; color:#444; }
 </style>
 </head>
 
@@ -167,18 +204,45 @@
     </div>
 
     <a id="mapsLink" class="mapsLink">Open route in Google Maps →</a>
-
     <div id="status" class="small"></div>
   </div>
 
   <div class="cards">
     <div class="card">
-      <h3 id="aTitle" class="demo">Los Angeles, CA</h3>
-      <div id="aToday" class="temp demo">—</div>
+      <h3 id="aTitle" class="demo">—</h3>
+      <div id="aToday" class="temp demo">74° / 60°</div>
+      <div class="small demo">Example (updates automatically)</div>
     </div>
+
     <div class="card">
-      <h3 id="bTitle" class="demo">New York City, NY</h3>
-      <div id="bToday" class="temp demo">—</div>
+      <h3>
+        <button id="bTitleBtn" class="cityLink demo" type="button" onclick="toggleDestinationSoon()">
+          <span id="bTitle">—</span>
+          <span class="cityLinkHint">↗</span>
+        </button>
+      </h3>
+      <div id="bToday" class="temp demo">66° / 51°</div>
+      <div class="small demo">Tap destination for city info</div>
+    </div>
+  </div>
+
+  <!-- Destination "Coming soon" panel -->
+  <div id="destSoon" class="soonPanel">
+    <div class="soonHeader">
+      <div>
+        <div class="soonTitle">Destination guide — Coming soon</div>
+        <div id="destSoonCity" class="small">—</div>
+      </div>
+      <button class="soonClose" type="button" onclick="closeDestinationSoon()">Close</button>
+    </div>
+    <ul class="soonList">
+      <li>What to pack for the forecast (rain, wind, heat, cold)</li>
+      <li>Local services &amp; essentials (groceries, fuel, pharmacy)</li>
+      <li>Things to do &amp; quick highlights</li>
+      <li>Travel helpers (hotels, transit, rentals)</li>
+    </ul>
+    <div class="small" style="margin-top:10px;">
+      This will become a helpful city panel (no spammy ads).
     </div>
   </div>
 
@@ -198,7 +262,7 @@
       <button id="tabPrecip" class="tabbtn" onclick="showPrecipChart()">🌧️ Precip</button>
     </div>
 
-    <h3 id="chartTitle" style="margin-top:12px;">—</h3>
+    <h3 id="chartTitle" style="margin-top:12px;" class="demo">Example route — 7-Day (starting today)</h3>
     <canvas id="comboChart" height="260"></canvas>
     <div id="htmlLegend" class="legend"></div>
     <p class="small">Color = location · Solid = high · Dotted = low</p>
@@ -216,7 +280,7 @@
       <button id="tabPrecip2" class="tabbtn" onclick="showPrecipChart()">🌧️ Precip</button>
     </div>
 
-    <h3 id="windTitle" style="margin-top:12px;">—</h3>
+    <h3 id="windTitle" style="margin-top:12px;" class="demo">Example route — Wind (7-Day, starting today)</h3>
     <canvas id="windChart" height="260"></canvas>
     <div id="windLegend" class="legend"></div>
     <p class="small">Color = location · Solid = peak · Dotted = average</p>
@@ -234,7 +298,7 @@
       <button id="tabPrecip3" class="tabbtn active" onclick="showPrecipChart()">🌧️ Precip</button>
     </div>
 
-    <h3 id="precipTitle" style="margin-top:12px;">—</h3>
+    <h3 id="precipTitle" style="margin-top:12px;" class="demo">Example route — Precip (7-Day, starting today)</h3>
     <canvas id="precipChart" height="260"></canvas>
     <div id="precipLegend" class="legend"></div>
     <p class="small">Precip (Rain &amp; Snow) · Solid = total precip (in) · Dotted = chance (%)</p>
@@ -242,9 +306,57 @@
 </div>
 
 <script>
-/* ========= Demo pair (fills cards + charts even before user enters anything) ========= */
-const DEMO_ORIGIN = "Los Angeles, CA";
-const DEMO_DEST   = "New York City, NY";
+/* =======================
+   Daily demo route (same for everyone)
+   - Deterministic by UTC date
+   - Recognizable cities only
+======================= */
+const RECOGNIZABLE_CITIES = [
+  "Los Angeles, CA",
+  "New York City, NY",
+  "Chicago, IL",
+  "Miami, FL",
+  "Seattle, WA",
+  "Denver, CO",
+  "Phoenix, AZ",
+  "Dallas, TX",
+  "San Francisco, CA",
+  "Washington, DC",
+  "Boston, MA",
+  "Atlanta, GA",
+  "Las Vegas, NV",
+  "San Diego, CA",
+  "Portland, OR"
+];
+
+function utcDayKey() {
+  // YYYY-MM-DD in UTC
+  return new Date().toISOString().slice(0, 10);
+}
+
+function hashStringToInt(s) {
+  // small deterministic hash
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0);
+}
+
+function pickDailyDemoPairUTC() {
+  const key = "weatherbot|" + utcDayKey();
+  const h = hashStringToInt(key);
+  const n = RECOGNIZABLE_CITIES.length;
+
+  const idxA = h % n;
+  // second index derived, guaranteed different
+  const idxB = (idxA + 1 + (Math.floor(h / n) % (n - 1))) % n;
+
+  return [RECOGNIZABLE_CITIES[idxA], RECOGNIZABLE_CITIES[idxB]];
+}
+
+let [DEMO_ORIGIN, DEMO_DEST] = pickDailyDemoPairUTC();
 
 /* ========= US State full-name -> 2-letter ========= */
 const US_STATES = {
@@ -267,6 +379,22 @@ function placeLabel(r) {
   }
   if (r.admin1) return `${r.name}, ${r.admin1}`;
   return r.name;
+}
+
+/* ========= Destination "coming soon" ========= */
+function toggleDestinationSoon() {
+  const open = destSoon.style.display === "block";
+  if (open) {
+    destSoon.style.display = "none";
+    return;
+  }
+  destSoonCity.textContent = `Destination: ${bTitle.textContent || DEMO_DEST}`;
+  destSoon.style.display = "block";
+  // Scroll just enough to reveal it on smaller screens
+  destSoon.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+function closeDestinationSoon() {
+  destSoon.style.display = "none";
 }
 
 /* ========= View toggles ========= */
@@ -391,6 +519,7 @@ async function get7DayFromToday(lat, lon) {
     if (days.length === 7) break;
   }
 
+  // fall back fill if needed
   if (days.length < 7) {
     for (let i = 0; i < t.length && days.length < 7; i++) {
       if (!days.includes(t[i])) {
@@ -460,10 +589,7 @@ const htmlLegendPlugin = {
       const text = document.createElement("span");
       text.textContent = ds.label;
 
-      row.onclick = () => {
-        chart.toggleDataVisibility(i);
-        chart.update();
-      };
+      row.onclick = () => { chart.toggleDataVisibility(i); chart.update(); };
 
       row.appendChild(line);
       row.appendChild(text);
@@ -472,9 +598,7 @@ const htmlLegendPlugin = {
   }
 };
 
-let tempChart;
-let windChartInstance;
-let precipChartInstance;
+let tempChart, windChartInstance, precipChartInstance;
 
 const CURRENT = {
   days: null,
@@ -489,6 +613,7 @@ const CURRENT = {
 const AXIS_TITLE_FONT = { size: 16, weight: "800" };
 const AXIS_TITLE_COLOR = "#111";
 
+/* ========= Renderers ========= */
 function renderTempChart(dayLabels, aLabel, aSeries, bLabel, bSeries) {
   if (tempChart) tempChart.destroy();
 
@@ -600,88 +725,104 @@ function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
   });
 }
 
-function setDemoMode(on) {
-  // Cards
-  aTitle.classList.toggle("demo", on);
-  aToday.classList.toggle("demo", on);
-  bTitle.classList.toggle("demo", on);
-  bToday.classList.toggle("demo", on);
+/* ========= Demo charts immediately (no blanks) ========= */
+function renderDemoImmediately() {
+  // Titles
+  aTitle.textContent = DEMO_ORIGIN;
+  bTitle.textContent = DEMO_DEST;
+  chartTitle.textContent = `${DEMO_ORIGIN} vs ${DEMO_DEST} — 7-Day (starting today)`;
+  windTitle.textContent = `${DEMO_ORIGIN} vs ${DEMO_DEST} — Wind (7-Day, starting today)`;
+  precipTitle.textContent = `${DEMO_ORIGIN} vs ${DEMO_DEST} — Precip (Rain & Snow) (7-Day, starting today)`;
 
-  // Chart titles
-  chartTitle.classList.toggle("demo", on);
-  windTitle.classList.toggle("demo", on);
-  precipTitle.classList.toggle("demo", on);
+  // Simple plausible static demo lines (will be replaced by real data silently)
+  const demoLabels = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+  const demoTempA = { hi: [74, 76, 77, 75, 73, 72, 71], lo: [60, 61, 62, 60, 59, 58, 57] };
+  const demoTempB = { hi: [66, 67, 69, 68, 66, 65, 64], lo: [51, 52, 53, 52, 51, 50, 49] };
+
+  const demoWindA = { peak: [16,18,20,21,18,15,13], avg: [8,9,10,11,9,8,7] };
+  const demoWindB = { peak: [22,24,25,23,21,20,18], avg: [11,12,13,12,11,10,9] };
+
+  const demoPrecipA = { inches: [0.00,0.05,0.00,0.10,0.00,0.00,0.00], prob: [5,10,5,15,5,3,2] };
+  const demoPrecipB = { inches: [0.20,0.30,0.10,0.40,0.25,0.10,0.05], prob: [30,35,25,40,30,20,15] };
+
+  // Use current state to avoid snow icons in demo legend
+  CURRENT.snowAAny = false;
+  CURRENT.snowBAny = false;
+  CURRENT.aLo = demoTempA.lo;
+  CURRENT.bLo = demoTempB.lo;
+  CURRENT.aPIn = demoPrecipA.inches;
+  CURRENT.bPIn = demoPrecipB.inches;
+
+  renderTempChart(demoLabels, DEMO_ORIGIN, demoTempA, DEMO_DEST, demoTempB);
+  renderWindChart(demoLabels, DEMO_ORIGIN, demoWindA, DEMO_DEST, demoWindB);
+  renderPrecipChart(demoLabels, DEMO_ORIGIN, demoPrecipA, DEMO_DEST, demoPrecipB);
+
+  // Cards show hi/lo placeholders (already set in HTML), but keep them demo
+  // (real data will overwrite them silently)
 }
 
-/* ========= Core renderer used by both demo + real compare ========= */
+/* ========= Core renderer (real data) ========= */
 async function loadAndRenderPair(originText, destText, { demo = false } = {}) {
+  const [A, B] = await Promise.all([ geocode(originText), geocode(destText) ]);
+
+  const ALabel = placeLabel(A);
+  const BLabel = placeLabel(B);
+
+  aTitle.textContent = ALabel;
+  bTitle.textContent = BLabel;
+
+  const [aData, bData] = await Promise.all([
+    get7DayFromToday(A.latitude, A.longitude),
+    get7DayFromToday(B.latitude, B.longitude)
+  ]);
+
+  const days = aData.days;
+
+  // Temps
+  const aTemp = { hi: aData.hi, lo: aData.lo };
+  const bTemp = alignToDays(days, bData);
+
+  aToday.textContent = `${aTemp.hi[0]}° / ${aTemp.lo[0]}°`;
+  bToday.textContent = `${bTemp.hi[0] ?? "—"}° / ${bTemp.lo[0] ?? "—"}°`;
+
+  const labels = days.map(d => {
+    const dt = new Date(d + "T12:00:00");
+    return dt.toLocaleDateString([], { weekday: "short" });
+  });
+
+  chartTitle.textContent = `${ALabel} vs ${BLabel} — 7-Day (starting today)`;
+  renderTempChart(labels, ALabel, aTemp, BLabel, bTemp);
+
+  // Wind
+  const aWind = { peak: aData.windPeak, avg: aData.windAvg };
+  const bWind = alignWindToDays(days, bData);
+  windTitle.textContent = `${ALabel} vs ${BLabel} — Wind (7-Day, starting today)`;
+  renderWindChart(labels, ALabel, aWind, BLabel, bWind);
+
+  // Precip
+  const aP = { inches: aData.precipIn, prob: aData.precipProb };
+  const bP = alignPrecipToDays(days, bData);
+  precipTitle.textContent = `${ALabel} vs ${BLabel} — Precip (Rain & Snow) (7-Day, starting today)`;
+
+  // Snow possible this week?
+  const snowAAny = days.some((_, i) => (aData.lo?.[i] != null && aData.lo[i] <= 32 && (aData.precipIn?.[i] || 0) > 0));
+  const bLoAligned = bTemp.lo;
+  const snowBAny = days.some((_, i) => (bLoAligned?.[i] != null && bLoAligned[i] <= 32 && (bP.inches?.[i] || 0) > 0));
+
+  CURRENT.days = days;
+  CURRENT.aLo = aData.lo;
+  CURRENT.bLo = bLoAligned;
+  CURRENT.aPIn = aData.precipIn;
+  CURRENT.bPIn = bP.inches;
+  CURRENT.snowAAny = snowAAny;
+  CURRENT.snowBAny = snowBAny;
+
+  renderPrecipChart(labels, ALabel, aP, BLabel, bP);
+
+  // In demo mode, keep italics; in real compare, remove demo styling
   if (!demo) {
-    status.textContent = "Loading…";
-    compareBtn.disabled = true;
-  }
-
-  try {
-    const [A, B] = await Promise.all([ geocode(originText), geocode(destText) ]);
-
-    const ALabel = placeLabel(A);
-    const BLabel = placeLabel(B);
-
-    aTitle.textContent = ALabel;
-    bTitle.textContent = BLabel;
-
-    const [aData, bData] = await Promise.all([
-      get7DayFromToday(A.latitude, A.longitude),
-      get7DayFromToday(B.latitude, B.longitude)
-    ]);
-
-    const days = aData.days;
-
-    // Temps
-    const aTemp = { hi: aData.hi, lo: aData.lo };
-    const bTemp = alignToDays(days, bData);
-
-    aToday.textContent = `${aTemp.hi[0]}° / ${aTemp.lo[0]}°`;
-    bToday.textContent = `${bTemp.hi[0] ?? "—"}° / ${bTemp.lo[0] ?? "—"}°`;
-
-    const labels = days.map(d => {
-      const dt = new Date(d + "T12:00:00");
-      return dt.toLocaleDateString([], { weekday: "short" });
-    });
-
-    chartTitle.textContent = `${ALabel} vs ${BLabel} — 7-Day (starting today)`;
-    renderTempChart(labels, ALabel, aTemp, BLabel, bTemp);
-
-    // Wind
-    const aWind = { peak: aData.windPeak, avg: aData.windAvg };
-    const bWind = alignWindToDays(days, bData);
-    windTitle.textContent = `${ALabel} vs ${BLabel} — Wind (7-Day, starting today)`;
-    renderWindChart(labels, ALabel, aWind, BLabel, bWind);
-
-    // Precip
-    const aP = { inches: aData.precipIn, prob: aData.precipProb };
-    const bP = alignPrecipToDays(days, bData);
-
-    precipTitle.textContent = `${ALabel} vs ${BLabel} — Precip (Rain & Snow) (7-Day, starting today)`;
-
-    const snowAAny = days.some((_, i) => (aData.lo?.[i] != null && aData.lo[i] <= 32 && (aData.precipIn?.[i] || 0) > 0));
-    const bLoAligned = bTemp.lo;
-    const snowBAny = days.some((_, i) => (bLoAligned?.[i] != null && bLoAligned[i] <= 32 && (bP.inches?.[i] || 0) > 0));
-
-    CURRENT.days = days;
-    CURRENT.aLo = aData.lo;
-    CURRENT.bLo = bLoAligned;
-    CURRENT.aPIn = aData.precipIn;
-    CURRENT.bPIn = bP.inches;
-    CURRENT.snowAAny = snowAAny;
-    CURRENT.snowBAny = snowBAny;
-
-    renderPrecipChart(labels, ALabel, aP, BLabel, bP);
-
-    if (!demo) status.textContent = "";
-  } catch (e) {
-    if (!demo) status.textContent = e?.message || String(e);
-  } finally {
-    if (!demo) compareBtn.disabled = false;
+    [aTitle, aToday, bTitleBtn, bToday, chartTitle, windTitle, precipTitle].forEach(el => el.classList.remove("demo"));
   }
 }
 
@@ -697,26 +838,36 @@ async function compare() {
     return;
   }
 
-  setDemoMode(false);
-  await loadAndRenderPair(aText, bText, { demo: false });
+  status.textContent = "";
+  compareBtn.disabled = true;
+
+  try {
+    await loadAndRenderPair(aText, bText, { demo: false });
+  } catch (e) {
+    status.textContent = e?.message || String(e);
+  } finally {
+    compareBtn.disabled = false;
+  }
 }
 
-/* ========= Demo preload (fills page 2/3/4 so nobody sees blanks) ========= */
-async function loadDemo() {
-  setDemoMode(true);
-  // Make sure the cards aren’t empty while demo loads
-  aToday.textContent = "Loading…";
-  bToday.textContent = "Loading…";
-  await loadAndRenderPair(DEMO_ORIGIN, DEMO_DEST, { demo: true });
-}
-
-/* Wire up maps link visibility */
+/* ========= Wire up maps link visibility ========= */
 locA.addEventListener("input", updateMapsLink);
 locB.addEventListener("input", updateMapsLink);
 updateMapsLink();
 
-/* Kick off demo data immediately */
-loadDemo();
+/* ========= Boot: demo first paint + silent real demo fetch ========= */
+renderDemoImmediately();
+
+// Silent fetch to swap demo placeholders -> real values for today's demo route
+(async () => {
+  try {
+    await loadAndRenderPair(DEMO_ORIGIN, DEMO_DEST, { demo: true });
+    // Keep demo styling on; but update the "Coming soon" city label target
+    destSoonCity.textContent = `Destination: ${bTitle.textContent || DEMO_DEST}`;
+  } catch {
+    // If demo fetch fails, keep the static demo charts/temps without showing "Loading..."
+  }
+})();
 </script>
 
 </body>
