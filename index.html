@@ -19,12 +19,12 @@
 <meta property="og:title" content="WeatherBot — Compare Current Weather &amp; 7-Day Forecast" />
 <meta property="og:description" content="Compare current weather conditions and 7-day forecasts for your starting point and destination—temperature, wind, and precipitation in one clean view." />
 <meta property="og:url" content="https://davidstennes.github.io/weatherbot/" />
-<!-- IMPORTANT: create this image file at /weatherbot/og-image.png (1200x630 recommended) -->
+<!-- Create this image file at /weatherbot/og-image.png (1200x630 recommended) -->
 <meta property="og:image" content="https://davidstennes.github.io/weatherbot/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 
-<!-- Twitter/X cards (also used by some apps) -->
+<!-- Twitter/X cards -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="WeatherBot — Compare Current Weather &amp; 7-Day Forecast" />
 <meta name="twitter:description" content="Compare current weather conditions and 7-day forecasts for your starting point and destination—temperature, wind, and precipitation in one clean view." />
@@ -34,14 +34,15 @@
 
 <style>
   body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f7f7f7; }
-  h2 { margin: 0; }
   h3 { margin: 0; }
+
   .panel, .card, .chartWrap {
     background: #fff; padding: 16px; border-radius: 14px;
     box-shadow: 0 2px 8px rgba(0,0,0,.08);
   }
+
   .row { display: grid; grid-template-columns: 1fr; gap: 10px; }
-  @media (min-width: 780px) { .row { grid-template-columns: 1fr 1fr auto; align-items: end; } }
+  @media (min-width: 780px) { .row { grid-template-columns: 1fr 1fr auto; align-items: center; } }
 
   input {
     width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; font-size: 1rem;
@@ -87,17 +88,30 @@
     transform: translateX(-50%) rotate(45deg);
   }
 
-  /* --- Header block --- */
+  /* Header block */
   .brand { margin: 0 0 10px 0; }
   .brandTitle { font-size: 1.5rem; font-weight: 900; margin: 0; }
   .brandSub { margin: 4px 0 0 0; font-size: .95rem; color: #444; font-weight: 650; }
   .brandTag { margin: 4px 0 0 0; font-size: .95rem; color: #666; }
 
-  /* --- Leaving from / Destination labels --- */
-  .fieldBlock { display:flex; flex-direction:column; gap:6px; }
-  .fieldLabel { font-size: .92rem; font-weight: 750; color: #333; margin: 0; }
+  /* Leaving from / Destination on SAME LINE as input */
+  .fieldRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .fieldLabelInline {
+    font-size: .92rem;
+    font-weight: 800;
+    color: #333;
+    white-space: nowrap;
+    min-width: 108px; /* keeps labels aligned */
+  }
+  @media (max-width: 420px) {
+    .fieldLabelInline { min-width: 96px; }
+  }
 
-  /* --- Google Maps link (SAME TAB, NO POPUP) --- */
+  /* Google Maps link (same tab, no popup) */
   .mapsLink {
     display: none;
     margin-top: 10px;
@@ -107,22 +121,21 @@
   }
   .mapsLink:hover { text-decoration: underline; }
 
-  /* --- Chart tabs --- */
+  /* Chart tabs */
   .tabbar { display:flex; flex-wrap: wrap; gap:8px; margin-top: 12px; }
   .tabbtn {
     background:#e9eef6; color:#123; border:1px solid #d6dbe3;
     padding:10px 12px; border-radius:10px; font-weight:800;
   }
-  .tabbtn:hover { opacity: 1; filter: brightness(0.98); }
   .tabbtn.active { background:#0077cc; color:#fff; border-color:#0077cc; }
 
-  /* neutral “back” button */
+  /* back button */
   .backBtn {
     background:#eef2f7; color:#123; border:1px solid #d6dbe3;
     font-weight: 800;
   }
 
-  /* Demo gray styling for initial cards */
+  /* demo styling */
   .demo { color: #9a9a9a; font-style: italic; }
 </style>
 </head>
@@ -138,13 +151,13 @@
 
   <div class="panel">
     <div class="row" style="margin-top:10px;">
-      <div class="fieldBlock">
-        <div class="fieldLabel">Leaving from</div>
+      <div class="fieldRow">
+        <div class="fieldLabelInline">Leaving from</div>
         <input id="locA" placeholder="City, ZIP, or landmark" aria-label="Leaving from" autocomplete="off" spellcheck="false">
       </div>
 
-      <div class="fieldBlock">
-        <div class="fieldLabel">Destination</div>
+      <div class="fieldRow">
+        <div class="fieldLabelInline">Destination</div>
         <input id="locB" placeholder="City, ZIP, or landmark" aria-label="Destination" autocomplete="off" spellcheck="false">
       </div>
 
@@ -153,7 +166,6 @@
       </div>
     </div>
 
-    <!-- PURE ANCHOR: same tab, no popup blocker -->
     <a id="mapsLink" class="mapsLink">Open route in Google Maps →</a>
 
     <div id="status" class="small"></div>
@@ -162,11 +174,11 @@
   <div class="cards">
     <div class="card">
       <h3 id="aTitle" class="demo">Los Angeles, CA</h3>
-      <div id="aToday" class="temp demo">72° / 58°</div>
+      <div id="aToday" class="temp demo">—</div>
     </div>
     <div class="card">
       <h3 id="bTitle" class="demo">New York City, NY</h3>
-      <div id="bToday" class="temp demo">65° / 50°</div>
+      <div id="bToday" class="temp demo">—</div>
     </div>
   </div>
 
@@ -211,7 +223,7 @@
   </div>
 </div>
 
-<!-- Precip chart view (LINES ONLY) -->
+<!-- Precip chart view -->
 <div id="precipView" style="display:none;">
   <button class="backBtn" onclick="showMain()">← Back to Today</button>
 
@@ -230,6 +242,10 @@
 </div>
 
 <script>
+/* ========= Demo pair (fills cards + charts even before user enters anything) ========= */
+const DEMO_ORIGIN = "Los Angeles, CA";
+const DEMO_DEST   = "New York City, NY";
+
 /* ========= US State full-name -> 2-letter ========= */
 const US_STATES = {
   Alabama:"AL", Alaska:"AK", Arizona:"AZ", Arkansas:"AR", California:"CA",
@@ -260,7 +276,6 @@ function showMain() {
   precipView.style.display = "none";
   mainView.style.display = "block";
 }
-
 function showTempChart() {
   mainView.style.display = "none";
   windView.style.display = "none";
@@ -268,7 +283,6 @@ function showTempChart() {
   chartView.style.display = "block";
   setTabActive("temp");
 }
-
 function showWindChart() {
   mainView.style.display = "none";
   chartView.style.display = "none";
@@ -276,7 +290,6 @@ function showWindChart() {
   windView.style.display = "block";
   setTabActive("wind");
 }
-
 function showPrecipChart() {
   mainView.style.display = "none";
   chartView.style.display = "none";
@@ -284,7 +297,6 @@ function showPrecipChart() {
   precipView.style.display = "block";
   setTabActive("precip");
 }
-
 function setTabActive(which) {
   const isTemp = which === "temp";
   const isWind = which === "wind";
@@ -303,13 +315,12 @@ function setTabActive(which) {
   if (typeof tabPrecip3 !== "undefined") tabPrecip3.classList.toggle("active", isPrecip);
 }
 
-/* ========= Google Maps link (SAME TAB, NO POPUP) ========= */
+/* ========= Google Maps link (same tab, no popup) ========= */
 function buildGoogleMapsDirLink(originText, destText) {
   const origin = encodeURIComponent(originText.trim());
   const dest = encodeURIComponent(destText.trim());
   return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}`;
 }
-
 function updateMapsLink() {
   const a = (locA.value || "").trim();
   const b = (locB.value || "").trim();
@@ -320,7 +331,7 @@ function updateMapsLink() {
     return;
   }
 
-  mapsLink.href = buildGoogleMapsDirLink(a, b); // same tab
+  mapsLink.href = buildGoogleMapsDirLink(a, b);
   mapsLink.style.display = "inline-block";
 }
 
@@ -357,13 +368,7 @@ async function get7DayFromToday(lat, lon) {
   const tz = j.timezone || "UTC";
   const today = todayInTimeZone(tz);
 
-  const days = [];
-  const hi = [];
-  const lo = [];
-  const windPeak = [];
-  const windAvg = [];
-  const precipIn = [];
-  const precipProb = [];
+  const days = [], hi = [], lo = [], windPeak = [], windAvg = [], precipIn = [], precipProb = [];
 
   const t  = j.daily.time;
   const h  = j.daily.temperature_2m_max;
@@ -412,7 +417,6 @@ function alignToDays(days, data) {
     lo: days.map(d => mapLo.has(d) ? mapLo.get(d) : null)
   };
 }
-
 function alignWindToDays(days, data) {
   const mapPeak = new Map(data.days.map((d, i) => [d, data.windPeak[i]]));
   const mapAvg  = new Map(data.days.map((d, i) => [d, data.windAvg[i]]));
@@ -421,7 +425,6 @@ function alignWindToDays(days, data) {
     avg:  days.map(d => mapAvg.has(d)  ? mapAvg.get(d)  : null)
   };
 }
-
 function alignPrecipToDays(days, data) {
   const mapIn   = new Map(data.days.map((d, i) => [d, data.precipIn[i]]));
   const mapProb = new Map(data.days.map((d, i) => [d, data.precipProb[i]]));
@@ -437,7 +440,6 @@ const htmlLegendPlugin = {
   afterUpdate(chart, args, opts) {
     const el = document.getElementById(opts.containerID);
     el.innerHTML = "";
-
     chart.data.datasets.forEach((ds, i) => {
       const row = document.createElement("div");
       row.className = "legend-item";
@@ -474,7 +476,6 @@ let tempChart;
 let windChartInstance;
 let precipChartInstance;
 
-/* ===== state used by precip tooltip hint ===== */
 const CURRENT = {
   days: null,
   aLo: null,
@@ -485,7 +486,6 @@ const CURRENT = {
   snowBAny: false
 };
 
-/* Axis title style: larger + bolder */
 const AXIS_TITLE_FONT = { size: 16, weight: "800" };
 const AXIS_TITLE_COLOR = "#111";
 
@@ -600,31 +600,31 @@ function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
   });
 }
 
-async function compare() {
-  const aText = (locA.value || "").trim();
-  const bText = (locB.value || "").trim();
+function setDemoMode(on) {
+  // Cards
+  aTitle.classList.toggle("demo", on);
+  aToday.classList.toggle("demo", on);
+  bTitle.classList.toggle("demo", on);
+  bToday.classList.toggle("demo", on);
 
-  updateMapsLink();
+  // Chart titles
+  chartTitle.classList.toggle("demo", on);
+  windTitle.classList.toggle("demo", on);
+  precipTitle.classList.toggle("demo", on);
+}
 
-  if (!aText || !bText) {
-    status.textContent = "Enter Leaving from and Destination, then tap Compare.";
-    return;
+/* ========= Core renderer used by both demo + real compare ========= */
+async function loadAndRenderPair(originText, destText, { demo = false } = {}) {
+  if (!demo) {
+    status.textContent = "Loading…";
+    compareBtn.disabled = true;
   }
 
-  status.textContent = "Loading…";
-  compareBtn.disabled = true;
-
   try {
-    const [A, B] = await Promise.all([ geocode(aText), geocode(bText) ]);
+    const [A, B] = await Promise.all([ geocode(originText), geocode(destText) ]);
 
     const ALabel = placeLabel(A);
     const BLabel = placeLabel(B);
-
-    // Remove demo styling once real data loads
-    aTitle.classList.remove("demo");
-    aToday.classList.remove("demo");
-    bTitle.classList.remove("demo");
-    bToday.classList.remove("demo");
 
     aTitle.textContent = ALabel;
     bTitle.textContent = BLabel;
@@ -636,6 +636,7 @@ async function compare() {
 
     const days = aData.days;
 
+    // Temps
     const aTemp = { hi: aData.hi, lo: aData.lo };
     const bTemp = alignToDays(days, bData);
 
@@ -650,11 +651,13 @@ async function compare() {
     chartTitle.textContent = `${ALabel} vs ${BLabel} — 7-Day (starting today)`;
     renderTempChart(labels, ALabel, aTemp, BLabel, bTemp);
 
+    // Wind
     const aWind = { peak: aData.windPeak, avg: aData.windAvg };
     const bWind = alignWindToDays(days, bData);
     windTitle.textContent = `${ALabel} vs ${BLabel} — Wind (7-Day, starting today)`;
     renderWindChart(labels, ALabel, aWind, BLabel, bWind);
 
+    // Precip
     const aP = { inches: aData.precipIn, prob: aData.precipProb };
     const bP = alignPrecipToDays(days, bData);
 
@@ -674,18 +677,46 @@ async function compare() {
 
     renderPrecipChart(labels, ALabel, aP, BLabel, bP);
 
-    status.textContent = "";
+    if (!demo) status.textContent = "";
   } catch (e) {
-    status.textContent = e?.message || String(e);
+    if (!demo) status.textContent = e?.message || String(e);
   } finally {
-    compareBtn.disabled = false;
+    if (!demo) compareBtn.disabled = false;
   }
 }
 
-/* Wire up the maps link to input edits */
+/* ========= User Compare ========= */
+async function compare() {
+  const aText = (locA.value || "").trim();
+  const bText = (locB.value || "").trim();
+
+  updateMapsLink();
+
+  if (!aText || !bText) {
+    status.textContent = "Enter Leaving from and Destination, then tap Compare.";
+    return;
+  }
+
+  setDemoMode(false);
+  await loadAndRenderPair(aText, bText, { demo: false });
+}
+
+/* ========= Demo preload (fills page 2/3/4 so nobody sees blanks) ========= */
+async function loadDemo() {
+  setDemoMode(true);
+  // Make sure the cards aren’t empty while demo loads
+  aToday.textContent = "Loading…";
+  bToday.textContent = "Loading…";
+  await loadAndRenderPair(DEMO_ORIGIN, DEMO_DEST, { demo: true });
+}
+
+/* Wire up maps link visibility */
 locA.addEventListener("input", updateMapsLink);
 locB.addEventListener("input", updateMapsLink);
 updateMapsLink();
+
+/* Kick off demo data immediately */
+loadDemo();
 </script>
 
 </body>
