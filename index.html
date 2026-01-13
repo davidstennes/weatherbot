@@ -4,16 +4,16 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-<title>Compare Weather: Here vs There</title>
+<title>WeatherBot — Compare Current Weather &amp; 7-Day Forecast</title>
 
-<meta name="description" content="See what it’s like where you are and where you’re going. Compare weather for the next 7 days—temperature, wind, and precipitation in one clean view." />
+<meta name="description" content="Compare current weather conditions and 7-day forecasts for your starting point and destination—temperature, wind, and precipitation in one clean view." />
 <link rel="canonical" href="https://davidstennes.github.io/weatherbot/" />
 
 <!-- Open Graph -->
 <meta property="og:type" content="website" />
-<meta property="og:site_name" content="Compare Weather: Here vs There" />
-<meta property="og:title" content="Compare Weather: Here vs There" />
-<meta property="og:description" content="See what it’s like where you are and where you’re going over the next 7 days." />
+<meta property="og:site_name" content="WeatherBot" />
+<meta property="og:title" content="WeatherBot — Compare Current Weather &amp; 7-Day Forecast" />
+<meta property="og:description" content="Compare current weather conditions and 7-day forecasts for your starting point and destination—temperature, wind, and precipitation in one clean view." />
 <meta property="og:url" content="https://davidstennes.github.io/weatherbot/" />
 <meta property="og:image" content="https://davidstennes.github.io/weatherbot/og-image.png" />
 <meta property="og:image:width" content="1200" />
@@ -21,8 +21,8 @@
 
 <!-- Twitter/X -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Compare Weather: Here vs There" />
-<meta name="twitter:description" content="See what it’s like where you are and where you’re going over the next 7 days." />
+<meta name="twitter:title" content="WeatherBot — Compare Current Weather &amp; 7-Day Forecast" />
+<meta name="twitter:description" content="Compare current weather conditions and 7-day forecasts for your starting point and destination—temperature, wind, and precipitation in one clean view." />
 <meta name="twitter:image" content="https://davidstennes.github.io/weatherbot/og-image.png" />
 
 <!-- GA4 (gtag) — replace G-XXXXXXXXXX -->
@@ -61,7 +61,7 @@
   button:disabled { opacity: .55; cursor: not-allowed; }
 
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 16px; margin-top: 14px; }
-  .temp { font-size: 1.45rem; font-weight: 900; }
+  .temp { font-size: 1.75rem; font-weight: 900; }
   .small { font-size: .9rem; color: #666; line-height: 1.25; margin-top: 6px; }
 
   .actions { margin-top: 14px; }
@@ -96,6 +96,7 @@
   .brand { margin: 0 0 10px 0; }
   .brandTitle { font-size: 1.55rem; font-weight: 950; margin: 0; }
   .brandSub { margin: 4px 0 0 0; font-size: .95rem; color: #444; font-weight: 750; }
+  .brandTag { margin: 4px 0 0 0; font-size: .95rem; color: #666; }
 
   /* Leaving from / Destination inline label + input */
   .fieldRow { display:flex; align-items:center; gap:10px; }
@@ -103,7 +104,7 @@
     font-size:.92rem; font-weight:900; color:#333;
     white-space:nowrap; min-width:110px;
   }
-  @media (max-width: 420px) { .fieldLabelInline { min-width: 108px; } }
+  @media (max-width: 420px) { .fieldLabelInline { min-width: 98px; } }
 
   /* Maps link (same tab, no popup) */
   .mapsLink {
@@ -192,15 +193,6 @@
     cursor:pointer;
   }
   .soonList{ margin:10px 0 0 18px; color:#444; }
-
-  /* New helper line under main action button */
-  .mainHelperLine{
-    margin-top:10px;
-    font-size:.92rem;
-    color:#666;
-    font-weight:750;
-    line-height:1.25;
-  }
 </style>
 </head>
 
@@ -208,24 +200,25 @@
 
 <div id="mainView">
   <div class="brand">
-    <div class="brandTitle">Compare Weather: Here vs There</div>
-    <div class="brandSub">See what it’s like where you are and where you’re going.</div>
+    <div class="brandTitle">WeatherBot</div>
+    <div class="brandSub">Current weather conditions &amp; 7-day weather forecast</div>
+    <div class="brandTag">“Weather to Go™”</div>
   </div>
 
   <div class="panel">
     <div class="row" style="margin-top:10px;">
       <div class="fieldRow">
-        <div class="fieldLabelInline">I’m leaving from</div>
-        <input id="locA" placeholder="City, ZIP, or landmark" aria-label="I’m leaving from" autocomplete="off" spellcheck="false">
+        <div class="fieldLabelInline">Leaving from</div>
+        <input id="locA" placeholder="City, ZIP, or landmark" aria-label="Leaving from" autocomplete="off" spellcheck="false">
       </div>
 
       <div class="fieldRow">
-        <div class="fieldLabelInline">I’m going to</div>
-        <input id="locB" placeholder="City, ZIP, or landmark" aria-label="I’m going to" autocomplete="off" spellcheck="false">
+        <div class="fieldLabelInline">Destination</div>
+        <input id="locB" placeholder="City, ZIP, or landmark" aria-label="Destination" autocomplete="off" spellcheck="false">
       </div>
 
       <div>
-        <button id="compareBtn" onclick="compare()">Compare Weather</button>
+        <button id="compareBtn" onclick="compare()">Compare</button>
       </div>
     </div>
 
@@ -236,8 +229,8 @@
   <div class="cards">
     <div class="card">
       <h3 id="aTitle" class="demo">—</h3>
-      <div id="aToday" class="temp demo">This will tell you the temperature where you are.</div>
-      <div class="small demo"></div>
+      <div id="aToday" class="temp demo">—</div>
+      <div class="small demo">Example (updates automatically)</div>
     </div>
 
     <div class="card">
@@ -259,8 +252,8 @@
         </button>
       </div>
 
-      <div id="bToday" class="temp demo">This will tell you the temperature where you’re going.</div>
-      <div class="small demo"></div>
+      <div id="bToday" class="temp demo">—</div>
+      <div class="small demo">City guide panel is coming soon</div>
     </div>
   </div>
 
@@ -285,10 +278,7 @@
   </div>
 
   <div class="actions">
-    <button class="wideBtn" onclick="showTempChart()">Compare weather for the next 7 days</button>
-    <div id="mainHelperText" class="mainHelperLine">
-      This will show the next 7 days for where you are and where you’re going.
-    </div>
+    <button class="wideBtn" onclick="showTempChart()">View 7-Day Outlook</button>
   </div>
 </div>
 
@@ -465,21 +455,12 @@ function toggleDestinationSoon() {
 }
 function closeDestinationSoon(){ destSoon.style.display = "none"; }
 
-/* ========= Main helper line behavior ========= */
-function setMainHelper(text) {
-  const el = document.getElementById("mainHelperText");
-  if (el) el.textContent = text;
-}
-const HELPER_BEFORE = "This will show the next 7 days for where you are and where you’re going.";
-const HELPER_AFTER  = "Showing the next 7 days for both places.";
-
 /* ========= View toggles ========= */
 function showMain() {
   chartView.style.display = "none";
   windView.style.display = "none";
   precipView.style.display = "none";
   mainView.style.display = "block";
-  setMainHelper(HELPER_BEFORE);
 }
 function showTempChart() {
   mainView.style.display = "none";
@@ -487,7 +468,6 @@ function showTempChart() {
   precipView.style.display = "none";
   chartView.style.display = "block";
   setTabActive("temp");
-  setMainHelper(HELPER_AFTER);
 }
 function showWindChart() {
   mainView.style.display = "none";
@@ -495,7 +475,6 @@ function showWindChart() {
   precipView.style.display = "none";
   windView.style.display = "block";
   setTabActive("wind");
-  setMainHelper(HELPER_AFTER);
 }
 function showPrecipChart() {
   mainView.style.display = "none";
@@ -503,7 +482,6 @@ function showPrecipChart() {
   windView.style.display = "none";
   precipView.style.display = "block";
   setTabActive("precip");
-  setMainHelper(HELPER_AFTER);
 }
 
 function setTabActive(which) {
@@ -767,9 +745,9 @@ function renderDemoImmediately() {
   bTitle.textContent = DEMO_DEST;
   updateGuideButtonCity();
 
-  // NEW: keep the page-1 boxes self-explanatory instead of showing demo temps
-  aToday.textContent = "This will tell you the temperature where you are.";
-  bToday.textContent = "This will tell you the temperature where you’re going.";
+  // demo temps on page 1
+  aToday.textContent = `74° / 60°`;
+  bToday.textContent = `66° / 51°`;
 
   // demo chart titles
   chartTitle.textContent  = `${DEMO_ORIGIN} vs ${DEMO_DEST} — 7-Day (starting today)`;
@@ -819,7 +797,6 @@ async function loadAndRenderPair(originText, destText, { demo = false } = {}) {
   const aTemp = { hi: aData.hi, lo: aData.lo };
   const bTemp = alignToDays(days, bData);
 
-  // Real temps show once actual data loads
   aToday.textContent = `${aTemp.hi[0]}° / ${aTemp.lo[0]}°`;
   bToday.textContent = `${bTemp.hi[0] ?? "—"}° / ${bTemp.lo[0] ?? "—"}°`;
 
@@ -865,7 +842,7 @@ async function compare() {
   updateMapsLink();
 
   if (!aText || !bText) {
-    status.textContent = "Enter I’m leaving from and I’m going to, then tap Compare Weather.";
+    status.textContent = "Enter Leaving from and Destination, then tap Compare.";
     return;
   }
 
@@ -883,7 +860,6 @@ async function compare() {
 
 /* ========= Boot ========= */
 updateMapsLink();
-setMainHelper(HELPER_BEFORE);
 wbApplySeeDoIconAndImpression(); // icon A/B + 1 impression/day/device
 renderDemoImmediately();         // instant filled UI
 
