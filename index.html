@@ -6,7 +6,7 @@
 
 <title>Compare Weather: Here vs There</title>
 
-<meta name="description" content="See what it’s like where you are and where you’re going. Compare weather for the next 7 days." />
+<meta name="description" content="See what it’s like where you are and where you’re going. Compare weather for the next 7 days—temperature, wind, and precipitation in one clean view." />
 <link rel="canonical" href="https://davidstennes.github.io/weatherbot/" />
 
 <!-- Open Graph -->
@@ -15,6 +15,24 @@
 <meta property="og:title" content="Compare Weather: Here vs There" />
 <meta property="og:description" content="See what it’s like where you are and where you’re going over the next 7 days." />
 <meta property="og:url" content="https://davidstennes.github.io/weatherbot/" />
+<meta property="og:image" content="https://davidstennes.github.io/weatherbot/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+
+<!-- Twitter/X -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Compare Weather: Here vs There" />
+<meta name="twitter:description" content="See what it’s like where you are and where you’re going over the next 7 days." />
+<meta name="twitter:image" content="https://davidstennes.github.io/weatherbot/og-image.png" />
+
+<!-- GA4 (gtag) — replace G-XXXXXXXXXX -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX', { send_page_view: true });
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -33,29 +51,155 @@
   input {
     width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; font-size: 1rem;
   }
+  input::placeholder { color: #8a8a8a; font-weight: 600; }
 
   button {
     padding: 12px 14px; border-radius: 10px; border: none;
     background: #0077cc; color: #fff; font-weight: 800; cursor: pointer;
   }
+  button:hover { opacity: .92; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
 
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 16px; margin-top: 14px; }
-  .temp { font-size: 1.4rem; font-weight: 800; }
-  .small { font-size: .9rem; color: #555; margin-top: 6px; }
+  .temp { font-size: 1.45rem; font-weight: 900; }
+  .small { font-size: .9rem; color: #666; line-height: 1.25; margin-top: 6px; }
 
-  .actions { margin-top: 14px; text-align: center; }
-  .wideBtn { width: 100%; font-size: 1.05rem; }
+  .actions { margin-top: 14px; }
+  .wideBtn { width: 100%; font-size: 1.1rem; }
 
-  .brandTitle { font-size: 1.6rem; font-weight: 900; }
-  .brandSub { margin-top: 4px; color: #444; }
+  .legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
+  .legend-item {
+    display:flex; align-items:center; gap:10px;
+    background:#f4f4f4; padding:6px 10px; border-radius:10px;
+    cursor:pointer; user-select:none;
+  }
+  .legend-line {
+    width: 70px;
+    height: 0;
+    border-top-width: 3px;
+    border-top-style: solid;
+    position: relative;
+  }
+  .legend-dot {
+    position:absolute; top:-6px; left:50%;
+    transform:translateX(-50%);
+    width:10px; height:10px;
+    background: currentColor;
+    border-radius:50%;
+  }
+  .legend-dot.diamond {
+    border-radius: 2px;
+    transform: translateX(-50%) rotate(45deg);
+  }
 
+  /* Header */
+  .brand { margin: 0 0 10px 0; }
+  .brandTitle { font-size: 1.55rem; font-weight: 950; margin: 0; }
+  .brandSub { margin: 4px 0 0 0; font-size: .95rem; color: #444; font-weight: 750; }
+
+  /* Leaving from / Destination inline label + input */
   .fieldRow { display:flex; align-items:center; gap:10px; }
-  .fieldLabelInline { font-weight: 800; white-space: nowrap; }
+  .fieldLabelInline {
+    font-size:.92rem; font-weight:900; color:#333;
+    white-space:nowrap; min-width:110px;
+  }
+  @media (max-width: 420px) { .fieldLabelInline { min-width: 108px; } }
 
-  .helperText {
-    margin-top: 8px;
-    font-size: .9rem;
-    color: #666;
+  /* Maps link (same tab, no popup) */
+  .mapsLink {
+    display:none;
+    margin-top:10px;
+    font-weight:900;
+    color:#0077cc;
+    text-decoration:none;
+  }
+  .mapsLink:hover { text-decoration:underline; }
+
+  /* Tabs */
+  .tabbar { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .tabbtn {
+    background:#e9eef6; color:#123; border:1px solid #d6dbe3;
+    padding:10px 12px; border-radius:10px; font-weight:900;
+    cursor: pointer;
+  }
+  .tabbtn.active { background:#0077cc; color:#fff; border-color:#0077cc; }
+
+  /* Back button */
+  .backBtn {
+    background:#eef2f7; color:#123; border:1px solid #d6dbe3;
+    font-weight:900;
+  }
+
+  /* Demo styling */
+  .demo { color:#8f8f8f; font-style: italic; }
+
+  /* Destination header row + 2-line action box */
+  .cityHeaderRow{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+  }
+
+  .cityActionBox{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    padding:8px 10px;
+    border-radius:10px;
+    border:1px solid #d6dbe3;
+    background:#eef2f7;
+    cursor:pointer;
+    font-weight:900;
+    line-height:1.1;
+    color:#123;
+  }
+  .cityActionBox:hover{ filter:brightness(0.98); }
+  .actionMain{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:.95rem;
+  }
+  .actionIcon{ font-size:1rem; line-height:1; }
+  .actionSub{
+    font-size:.8rem;
+    font-weight:750;
+    color:#666;
+  }
+
+  /* Coming soon panel */
+  .soonPanel {
+    display:none;
+    margin-top:12px;
+    background:#fff;
+    border-radius:14px;
+    padding:14px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .soonHeader{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .soonTitle{ font-weight:950; margin:0; }
+  .soonClose{
+    background:#eef2f7; color:#123; border:1px solid #d6dbe3;
+    border-radius:10px;
+    padding:8px 10px;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .soonList{ margin:10px 0 0 18px; color:#444; }
+
+  /* New helper line under main action button */
+  .mainHelperLine{
+    margin-top:10px;
+    font-size:.92rem;
+    color:#666;
+    font-weight:750;
+    line-height:1.25;
   }
 </style>
 </head>
@@ -68,75 +212,685 @@
     <div class="brandSub">See what it’s like where you are and where you’re going.</div>
   </div>
 
-  <div class="panel" style="margin-top:12px;">
-    <div class="row">
+  <div class="panel">
+    <div class="row" style="margin-top:10px;">
       <div class="fieldRow">
         <div class="fieldLabelInline">I’m leaving from</div>
-        <input id="locA" placeholder="City, ZIP, or landmark">
+        <input id="locA" placeholder="City, ZIP, or landmark" aria-label="I’m leaving from" autocomplete="off" spellcheck="false">
       </div>
 
       <div class="fieldRow">
         <div class="fieldLabelInline">I’m going to</div>
-        <input id="locB" placeholder="City, ZIP, or landmark">
+        <input id="locB" placeholder="City, ZIP, or landmark" aria-label="I’m going to" autocomplete="off" spellcheck="false">
       </div>
 
-      <button onclick="compare()">Compare Weather</button>
+      <div>
+        <button id="compareBtn" onclick="compare()">Compare Weather</button>
+      </div>
     </div>
+
+    <a id="mapsLink" class="mapsLink">Open route in Google Maps →</a>
+    <div id="status" class="small"></div>
   </div>
 
   <div class="cards">
     <div class="card">
-      <h3>Where you are</h3>
-      <div id="aToday" class="temp">
-        This will tell you the temperature where you are.
-      </div>
+      <h3 id="aTitle" class="demo">—</h3>
+      <div id="aToday" class="temp demo">This will tell you the temperature where you are.</div>
+      <div class="small demo"></div>
     </div>
 
     <div class="card">
-      <h3>Where you’re going</h3>
-      <div id="bToday" class="temp">
-        This will tell you the temperature where you’re going.
+      <div class="cityHeaderRow">
+        <h3 id="bTitle" class="demo">—</h3>
+
+        <button
+          id="bGuideBtn"
+          class="cityActionBox demo"
+          type="button"
+          onclick="wbTrackSeeDoClick(); toggleDestinationSoon();"
+          aria-label="See and do at destination city"
+        >
+          <span class="actionMain">
+            <span class="actionIcon">👀</span>
+            See &amp; do
+          </span>
+          <span class="actionSub" id="bGuideSub">in —</span>
+        </button>
       </div>
+
+      <div id="bToday" class="temp demo">This will tell you the temperature where you’re going.</div>
+      <div class="small demo"></div>
+    </div>
+  </div>
+
+  <div id="destSoon" class="soonPanel">
+    <div class="soonHeader">
+      <div>
+        <div class="soonTitle">Destination guide — Coming soon</div>
+        <div id="destSoonCity" class="small">—</div>
+      </div>
+      <button class="soonClose" type="button" onclick="closeDestinationSoon()">Close</button>
+    </div>
+
+    <ul class="soonList">
+      <li>What to pack for the forecast (rain, wind, heat, cold)</li>
+      <li>Local services &amp; essentials (groceries, fuel, pharmacy)</li>
+      <li>Things to do &amp; quick highlights</li>
+      <li>Travel helpers (hotels, transit, rentals)</li>
+    </ul>
+    <div class="small" style="margin-top:10px;">
+      This will become a helpful city panel (no spammy ads).
     </div>
   </div>
 
   <div class="actions">
-    <button class="wideBtn" onclick="showTempChart()">
-      Compare weather for the next 7 days
-    </button>
-
-    <div id="helperText" class="helperText">
+    <button class="wideBtn" onclick="showTempChart()">Compare weather for the next 7 days</button>
+    <div id="mainHelperText" class="mainHelperLine">
       This will show the next 7 days for where you are and where you’re going.
     </div>
   </div>
 </div>
 
+<!-- Temperature chart view -->
 <div id="chartView" style="display:none;">
-  <button onclick="showMain()">← Back</button>
+  <button class="backBtn" onclick="showMain()">← Back to Today</button>
+
   <div class="chartWrap" style="margin-top:12px;">
-    <h3>Showing the next 7 days for both places.</h3>
+    <div class="tabbar">
+      <button id="tabTemp" class="tabbtn active" onclick="showTempChart()">🌡️ Temperature</button>
+      <button id="tabWind" class="tabbtn" onclick="showWindChart()">💨 Wind</button>
+      <button id="tabPrecip" class="tabbtn" onclick="showPrecipChart()">🌧️ Precip</button>
+    </div>
+
+    <h3 id="chartTitle" style="margin-top:12px;" class="demo">—</h3>
     <canvas id="comboChart" height="260"></canvas>
+    <div id="htmlLegend" class="legend"></div>
+    <p class="small">Color = location · Solid = high · Dotted = low</p>
+  </div>
+</div>
+
+<!-- Wind chart view -->
+<div id="windView" style="display:none;">
+  <button class="backBtn" onclick="showMain()">← Back to Today</button>
+
+  <div class="chartWrap" style="margin-top:12px;">
+    <div class="tabbar">
+      <button id="tabTemp2" class="tabbtn" onclick="showTempChart()">🌡️ Temperature</button>
+      <button id="tabWind2" class="tabbtn active" onclick="showWindChart()">💨 Wind</button>
+      <button id="tabPrecip2" class="tabbtn" onclick="showPrecipChart()">🌧️ Precip</button>
+    </div>
+
+    <h3 id="windTitle" style="margin-top:12px;" class="demo">—</h3>
+    <canvas id="windChart" height="260"></canvas>
+    <div id="windLegend" class="legend"></div>
+    <p class="small">Color = location · Solid = peak · Dotted = average</p>
+  </div>
+</div>
+
+<!-- Precip chart view -->
+<div id="precipView" style="display:none;">
+  <button class="backBtn" onclick="showMain()">← Back to Today</button>
+
+  <div class="chartWrap" style="margin-top:12px;">
+    <div class="tabbar">
+      <button id="tabTemp3" class="tabbtn" onclick="showTempChart()">🌡️ Temperature</button>
+      <button id="tabWind3" class="tabbtn" onclick="showWindChart()">💨 Wind</button>
+      <button id="tabPrecip3" class="tabbtn active" onclick="showPrecipChart()">🌧️ Precip</button>
+    </div>
+
+    <h3 id="precipTitle" style="margin-top:12px;" class="demo">—</h3>
+    <canvas id="precipChart" height="260"></canvas>
+    <div id="precipLegend" class="legend"></div>
+    <p class="small">Precip (Rain &amp; Snow) · Solid = total precip (in) · Dotted = chance (%)</p>
   </div>
 </div>
 
 <script>
-function showTempChart(){
-  document.getElementById("mainView").style.display = "none";
-  document.getElementById("chartView").style.display = "block";
-  const helper = document.getElementById("helperText");
-  if (helper) helper.textContent = "Showing the next 7 days for both places.";
+/* =========================================================
+   GA4 A/B test (one impression per day per device)
+========================================================= */
+const WB_AB = {
+  testName: "see_do_icon_v1",
+  variants: [
+    { key: "eye",  icon: "👀" },
+    { key: "map",  icon: "🗺️" },
+    { key: "star", icon: "⭐" }
+  ]
+};
+
+function wbGetVariant() {
+  const storageKey = `wb_ab_${WB_AB.testName}_variant`;
+  let v = localStorage.getItem(storageKey);
+  if (!v) {
+    const pick = WB_AB.variants[Math.floor(Math.random() * WB_AB.variants.length)];
+    v = pick.key;
+    localStorage.setItem(storageKey, v);
+  }
+  return v;
 }
 
-function showMain(){
-  document.getElementById("chartView").style.display = "none";
-  document.getElementById("mainView").style.display = "block";
-  const helper = document.getElementById("helperText");
-  if (helper) helper.textContent = "This will show the next 7 days for where you are and where you’re going.";
+function wbVariantIcon(variantKey) {
+  const v = WB_AB.variants.find(x => x.key === variantKey);
+  return v ? v.icon : WB_AB.variants[0].icon;
 }
 
-function compare(){
-  // placeholder – existing logic plugs in here
+function wbTrack(eventName, params = {}) {
+  if (typeof window.gtag !== "function") return;
+  gtag("event", eventName, params);
 }
+
+function wbApplySeeDoIconAndImpression() {
+  const variantKey = wbGetVariant();
+  const icon = wbVariantIcon(variantKey);
+
+  const iconEl = document.querySelector(".actionIcon");
+  if (iconEl) iconEl.textContent = icon;
+
+  const dayKey = new Date().toISOString().slice(0, 10); // UTC day
+  const impKey = `wb_ab_${WB_AB.testName}_impression_${dayKey}`;
+  if (!localStorage.getItem(impKey)) {
+    localStorage.setItem(impKey, "1");
+    wbTrack("see_do_impression", { test_name: WB_AB.testName, variant: variantKey });
+  }
+}
+
+function wbTrackSeeDoClick() {
+  const variantKey = wbGetVariant();
+  wbTrack("see_do_click", { test_name: WB_AB.testName, variant: variantKey });
+}
+
+/* =========================================================
+   Daily demo route (same for everyone, changes daily)
+========================================================= */
+const RECOGNIZABLE_CITIES = [
+  "Los Angeles, CA","New York City, NY","Chicago, IL","Miami, FL","Seattle, WA",
+  "Denver, CO","Phoenix, AZ","Dallas, TX","San Francisco, CA","Washington, DC",
+  "Boston, MA","Atlanta, GA","Las Vegas, NV","San Diego, CA","Portland, OR"
+];
+
+function utcDayKey(){ return new Date().toISOString().slice(0, 10); }
+
+function hashStringToInt(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0);
+}
+
+function pickDailyDemoPairUTC() {
+  const key = "weatherbot|" + utcDayKey();
+  const h = hashStringToInt(key);
+  const n = RECOGNIZABLE_CITIES.length;
+
+  const idxA = h % n;
+  const idxB = (idxA + 1 + (Math.floor(h / n) % (n - 1))) % n;
+  return [RECOGNIZABLE_CITIES[idxA], RECOGNIZABLE_CITIES[idxB]];
+}
+
+let [DEMO_ORIGIN, DEMO_DEST] = pickDailyDemoPairUTC();
+
+/* ========= US State full-name -> 2-letter ========= */
+const US_STATES = {
+  Alabama:"AL", Alaska:"AK", Arizona:"AZ", Arkansas:"AR", California:"CA",
+  Colorado:"CO", Connecticut:"CT", Delaware:"DE", Florida:"FL", Georgia:"GA",
+  Hawaii:"HI", Idaho:"ID", Illinois:"IL", Indiana:"IN", Iowa:"IA", Kansas:"KS",
+  Kentucky:"KY", Louisiana:"LA", Maine:"ME", Maryland:"MD", Massachusetts:"MA",
+  Michigan:"MI", Minnesota:"MN", Mississippi:"MS", Missouri:"MO", Montana:"MT",
+  Nebraska:"NE", Nevada:"NV", "New Hampshire":"NH", "New Jersey":"NJ",
+  "New Mexico":"NM", "New York":"NY", "North Carolina":"NC", "North Dakota":"ND",
+  Ohio:"OH", Oklahoma:"OK", Oregon:"OR", Pennsylvania:"PA", "Rhode Island":"RI",
+  "South Carolina":"SC", "South Dakota":"SD", Tennessee:"TN", Texas:"TX",
+  Utah:"UT", Vermont:"VT", Virginia:"VA", Washington:"WA",
+  "West Virginia":"WV", Wisconsin:"WI", Wyoming:"WY"
+};
+
+function placeLabel(r) {
+  if (r.country === "United States" && r.admin1 && US_STATES[r.admin1]) {
+    return `${r.name}, ${US_STATES[r.admin1]}`;
+  }
+  if (r.admin1) return `${r.name}, ${r.admin1}`;
+  return r.name;
+}
+
+/* ========= Destination Coming Soon panel ========= */
+function toggleDestinationSoon() {
+  const open = destSoon.style.display === "block";
+  if (open) { destSoon.style.display = "none"; return; }
+  destSoonCity.textContent = `Destination: ${bTitle.textContent || DEMO_DEST}`;
+  destSoon.style.display = "block";
+  destSoon.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+function closeDestinationSoon(){ destSoon.style.display = "none"; }
+
+/* ========= Main helper line behavior ========= */
+function setMainHelper(text) {
+  const el = document.getElementById("mainHelperText");
+  if (el) el.textContent = text;
+}
+const HELPER_BEFORE = "This will show the next 7 days for where you are and where you’re going.";
+const HELPER_AFTER  = "Showing the next 7 days for both places.";
+
+/* ========= View toggles ========= */
+function showMain() {
+  chartView.style.display = "none";
+  windView.style.display = "none";
+  precipView.style.display = "none";
+  mainView.style.display = "block";
+  setMainHelper(HELPER_BEFORE);
+}
+function showTempChart() {
+  mainView.style.display = "none";
+  windView.style.display = "none";
+  precipView.style.display = "none";
+  chartView.style.display = "block";
+  setTabActive("temp");
+  setMainHelper(HELPER_AFTER);
+}
+function showWindChart() {
+  mainView.style.display = "none";
+  chartView.style.display = "none";
+  precipView.style.display = "none";
+  windView.style.display = "block";
+  setTabActive("wind");
+  setMainHelper(HELPER_AFTER);
+}
+function showPrecipChart() {
+  mainView.style.display = "none";
+  chartView.style.display = "none";
+  windView.style.display = "none";
+  precipView.style.display = "block";
+  setTabActive("precip");
+  setMainHelper(HELPER_AFTER);
+}
+
+function setTabActive(which) {
+  const isTemp = which === "temp";
+  const isWind = which === "wind";
+  const isPrecip = which === "precip";
+
+  tabTemp.classList.toggle("active", isTemp);
+  tabWind.classList.toggle("active", isWind);
+  tabPrecip.classList.toggle("active", isPrecip);
+
+  tabTemp2.classList.toggle("active", isTemp);
+  tabWind2.classList.toggle("active", isWind);
+  tabPrecip2.classList.toggle("active", isPrecip);
+
+  tabTemp3.classList.toggle("active", isTemp);
+  tabWind3.classList.toggle("active", isWind);
+  tabPrecip3.classList.toggle("active", isPrecip);
+}
+
+/* ========= Maps link (same tab, no popup) ========= */
+function buildGoogleMapsDirLink(originText, destText) {
+  const origin = encodeURIComponent(originText.trim());
+  const dest = encodeURIComponent(destText.trim());
+  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}`;
+}
+
+function updateMapsLink() {
+  const a = (locA.value || "").trim();
+  const b = (locB.value || "").trim();
+  if (!a || !b) {
+    mapsLink.style.display = "none";
+    mapsLink.removeAttribute("href");
+    return;
+  }
+  mapsLink.href = buildGoogleMapsDirLink(a, b);
+  mapsLink.style.display = "inline-block";
+}
+
+locA.addEventListener("input", updateMapsLink);
+locB.addEventListener("input", updateMapsLink);
+
+/* ========= Geocode ========= */
+async function geocode(name) {
+  const r = await fetch(
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=en&format=json`
+  );
+  const j = await r.json();
+  if (!j.results?.length) throw new Error(`Location not found: ${name}`);
+  return j.results[0];
+}
+
+/* ========= Timezone-correct "today" (YYYY-MM-DD) ========= */
+function todayInTimeZone(tz) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit"
+  }).format(new Date());
+}
+
+/* ========= Forecast (start TODAY) ========= */
+async function get7DayFromToday(lat, lon) {
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&daily=temperature_2m_max,temperature_2m_min,wind_speed_10m_max,wind_speed_10m_mean,precipitation_sum,precipitation_probability_max` +
+    `&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto`;
+
+  const r = await fetch(url);
+  const j = await r.json();
+
+  const tz = j.timezone || "UTC";
+  const today = todayInTimeZone(tz);
+
+  const days = [], hi = [], lo = [], windPeak = [], windAvg = [], precipIn = [], precipProb = [];
+
+  const t  = j.daily.time;
+  const h  = j.daily.temperature_2m_max;
+  const l  = j.daily.temperature_2m_min;
+  const wp = j.daily.wind_speed_10m_max;
+  const wa = j.daily.wind_speed_10m_mean;
+  const pr = j.daily.precipitation_sum;
+  const pp = j.daily.precipitation_probability_max;
+
+  for (let i = 0; i < t.length; i++) {
+    if (t[i] >= today) {
+      days.push(t[i]);
+      hi.push(Math.round(h[i]));
+      lo.push(Math.round(l[i]));
+      windPeak.push(Math.round(wp[i]));
+      windAvg.push(Math.round(wa[i]));
+      precipIn.push(pr?.[i] != null ? Math.round(pr[i] * 100) / 100 : null);
+      precipProb.push(pp?.[i] != null ? Math.round(pp[i]) : null);
+    }
+    if (days.length === 7) break;
+  }
+
+  if (days.length < 7) {
+    for (let i = 0; i < t.length && days.length < 7; i++) {
+      if (!days.includes(t[i])) {
+        days.push(t[i]);
+        hi.push(Math.round(h[i]));
+        lo.push(Math.round(l[i]));
+        windPeak.push(Math.round(wp[i]));
+        windAvg.push(Math.round(wa[i]));
+        precipIn.push(pr?.[i] != null ? Math.round(pr[i] * 100) / 100 : null);
+        precipProb.push(pp?.[i] != null ? Math.round(pp[i]) : null);
+      }
+    }
+  }
+  return { days, hi, lo, windPeak, windAvg, precipIn, precipProb, tz };
+}
+
+/* ========= Align B to A's day labels ========= */
+function alignToDays(days, data) {
+  const mapHi = new Map(data.days.map((d, i) => [d, data.hi[i]]));
+  const mapLo = new Map(data.days.map((d, i) => [d, data.lo[i]]));
+  return { hi: days.map(d => mapHi.get(d) ?? null), lo: days.map(d => mapLo.get(d) ?? null) };
+}
+function alignWindToDays(days, data) {
+  const mapPeak = new Map(data.days.map((d, i) => [d, data.windPeak[i]]));
+  const mapAvg  = new Map(data.days.map((d, i) => [d, data.windAvg[i]]));
+  return { peak: days.map(d => mapPeak.get(d) ?? null), avg: days.map(d => mapAvg.get(d) ?? null) };
+}
+function alignPrecipToDays(days, data) {
+  const mapIn   = new Map(data.days.map((d, i) => [d, data.precipIn[i]]));
+  const mapProb = new Map(data.days.map((d, i) => [d, data.precipProb[i]]));
+  return { inches: days.map(d => mapIn.get(d) ?? null), prob: days.map(d => mapProb.get(d) ?? null) };
+}
+
+/* ========= HTML legend plugin ========= */
+const htmlLegendPlugin = {
+  id: "htmlLegend",
+  afterUpdate(chart, args, opts) {
+    const el = document.getElementById(opts.containerID);
+    el.innerHTML = "";
+    chart.data.datasets.forEach((ds, i) => {
+      const row = document.createElement("div");
+      row.className = "legend-item";
+
+      const line = document.createElement("div");
+      line.className = "legend-line";
+      line.style.borderTopColor = ds.borderColor;
+      line.style.color = ds.borderColor;
+
+      const isDashed = Array.isArray(ds.borderDash) && ds.borderDash.length;
+      line.style.borderTopStyle = isDashed ? "dotted" : "solid";
+
+      const dot = document.createElement("div");
+      dot.className = "legend-dot";
+      if (ds.pointStyle === "rectRot") dot.classList.add("diamond");
+      line.appendChild(dot);
+
+      const text = document.createElement("span");
+      text.textContent = ds.label;
+
+      row.onclick = () => { chart.toggleDataVisibility(i); chart.update(); };
+
+      row.appendChild(line);
+      row.appendChild(text);
+      el.appendChild(row);
+    });
+  }
+};
+
+let tempChart, windChartInstance, precipChartInstance;
+
+const CURRENT = { aLo:null, bLo:null, aPIn:null, bPIn:null, snowAAny:false, snowBAny:false };
+const AXIS_TITLE_FONT = { size: 16, weight: "900" };
+const AXIS_TITLE_COLOR = "#111";
+
+/* ========= Chart renderers ========= */
+function renderTempChart(dayLabels, aLabel, aSeries, bLabel, bSeries) {
+  if (tempChart) tempChart.destroy();
+  const COLOR_A = "#1f77b4";
+  const COLOR_B = "#ff7f0e";
+
+  tempChart = new Chart(comboChart, {
+    type: "line",
+    data: {
+      labels: dayLabels,
+      datasets: [
+        { label: `${aLabel} High`, data: aSeries.hi, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3 },
+        { label: `${aLabel} Low`,  data: aSeries.lo, borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3 },
+        { label: `${bLabel} High`, data: bSeries.hi, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot" },
+        { label: `${bLabel} Low`,  data: bSeries.lo, borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot" }
+      ]
+    },
+    options: {
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, htmlLegend: { containerID: "htmlLegend" } },
+      scales: { y: { title: { display:true, text:"°F", color:AXIS_TITLE_COLOR, font:AXIS_TITLE_FONT } } }
+    },
+    plugins: [htmlLegendPlugin]
+  });
+}
+
+function renderWindChart(dayLabels, aLabel, aWind, bLabel, bWind) {
+  if (windChartInstance) windChartInstance.destroy();
+  const COLOR_A = "#1f77b4";
+  const COLOR_B = "#ff7f0e";
+
+  windChartInstance = new Chart(windChart, {
+    type: "line",
+    data: {
+      labels: dayLabels,
+      datasets: [
+        { label: `${aLabel} Peak`, data: aWind.peak, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3 },
+        { label: `${aLabel} Avg`,  data: aWind.avg,  borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3 },
+        { label: `${bLabel} Peak`, data: bWind.peak, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot" },
+        { label: `${bLabel} Avg`,  data: bWind.avg,  borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot" }
+      ]
+    },
+    options: {
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, htmlLegend: { containerID: "windLegend" } },
+      scales: { y: { title: { display:true, text:"MPH", color:AXIS_TITLE_COLOR, font:AXIS_TITLE_FONT } } }
+    },
+    plugins: [htmlLegendPlugin]
+  });
+}
+
+function renderPrecipChart(dayLabels, aLabel, aP, bLabel, bP) {
+  if (precipChartInstance) precipChartInstance.destroy();
+  const COLOR_A = "#1f77b4";
+  const COLOR_B = "#ff7f0e";
+
+  const aSnow = CURRENT.snowAAny ? " ❄️" : "";
+  const bSnow = CURRENT.snowBAny ? " ❄️" : "";
+
+  precipChartInstance = new Chart(precipChart, {
+    type: "line",
+    data: {
+      labels: dayLabels,
+      datasets: [
+        { label: `${aLabel} Precip (in)${aSnow}`, data: aP.inches, borderColor: COLOR_A, borderWidth: 3, pointRadius: 3, yAxisID: "y" },
+        { label: `${aLabel} Chance (%)${aSnow}`, data: aP.prob,   borderColor: COLOR_A, borderDash: [2,6], borderWidth: 2, pointRadius: 3, yAxisID: "y1" },
+        { label: `${bLabel} Precip (in)${bSnow}`, data: bP.inches, borderColor: COLOR_B, borderWidth: 3, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y" },
+        { label: `${bLabel} Chance (%)${bSnow}`, data: bP.prob,   borderColor: COLOR_B, borderDash: [2,6], borderWidth: 2, pointRadius: 3, pointStyle: "rectRot", yAxisID: "y1" }
+      ]
+    },
+    options: {
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, htmlLegend: { containerID: "precipLegend" } },
+      scales: {
+        y:  { title: { display:true, text:"INCHES", color:AXIS_TITLE_COLOR, font:AXIS_TITLE_FONT }, beginAtZero:true },
+        y1: { title: { display:true, text:"%", color:AXIS_TITLE_COLOR, font:AXIS_TITLE_FONT }, beginAtZero:true, max:100, position:"right", grid:{ drawOnChartArea:false } }
+      }
+    },
+    plugins: [htmlLegendPlugin]
+  });
+}
+
+/* ========= Demo render (no blanks, no “Loading…”) ========= */
+function updateGuideButtonCity() {
+  const city = (bTitle.textContent || "").split(",")[0].trim();
+  bGuideSub.textContent = city ? `in ${city}` : "in destination";
+}
+
+function renderDemoImmediately() {
+  // visually filled, instantly
+  aTitle.textContent = DEMO_ORIGIN;
+  bTitle.textContent = DEMO_DEST;
+  updateGuideButtonCity();
+
+  // NEW: keep the page-1 boxes self-explanatory instead of showing demo temps
+  aToday.textContent = "This will tell you the temperature where you are.";
+  bToday.textContent = "This will tell you the temperature where you’re going.";
+
+  // demo chart titles
+  chartTitle.textContent  = `${DEMO_ORIGIN} vs ${DEMO_DEST} — 7-Day (starting today)`;
+  windTitle.textContent   = `${DEMO_ORIGIN} vs ${DEMO_DEST} — Wind (7-Day, starting today)`;
+  precipTitle.textContent = `${DEMO_ORIGIN} vs ${DEMO_DEST} — Precip (7-Day, starting today)`;
+
+  const demoLabels = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+  const demoTempA = { hi:[74,76,77,75,73,72,71], lo:[60,61,62,60,59,58,57] };
+  const demoTempB = { hi:[66,67,69,68,66,65,64], lo:[51,52,53,52,51,50,49] };
+
+  const demoWindA = { peak:[16,18,20,21,18,15,13], avg:[8,9,10,11,9,8,7] };
+  const demoWindB = { peak:[22,24,25,23,21,20,18], avg:[11,12,13,12,11,10,9] };
+
+  const demoPrecipA = { inches:[0.00,0.05,0.00,0.10,0.00,0.00,0.00], prob:[5,10,5,15,5,3,2] };
+  const demoPrecipB = { inches:[0.20,0.30,0.10,0.40,0.25,0.10,0.05], prob:[30,35,25,40,30,20,15] };
+
+  CURRENT.snowAAny = false;
+  CURRENT.snowBAny = false;
+  CURRENT.aLo = demoTempA.lo;
+  CURRENT.bLo = demoTempB.lo;
+  CURRENT.aPIn = demoPrecipA.inches;
+  CURRENT.bPIn = demoPrecipB.inches;
+
+  renderTempChart(demoLabels, DEMO_ORIGIN, demoTempA, DEMO_DEST, demoTempB);
+  renderWindChart(demoLabels, DEMO_ORIGIN, demoWindA, DEMO_DEST, demoWindB);
+  renderPrecipChart(demoLabels, DEMO_ORIGIN, demoPrecipA, DEMO_DEST, demoPrecipB);
+}
+
+/* ========= Real data load & render ========= */
+async function loadAndRenderPair(originText, destText, { demo = false } = {}) {
+  const [A, B] = await Promise.all([ geocode(originText), geocode(destText) ]);
+  const ALabel = placeLabel(A);
+  const BLabel = placeLabel(B);
+
+  aTitle.textContent = ALabel;
+  bTitle.textContent = BLabel;
+  updateGuideButtonCity();
+
+  const [aData, bData] = await Promise.all([
+    get7DayFromToday(A.latitude, A.longitude),
+    get7DayFromToday(B.latitude, B.longitude)
+  ]);
+
+  const days = aData.days;
+
+  const aTemp = { hi: aData.hi, lo: aData.lo };
+  const bTemp = alignToDays(days, bData);
+
+  // Real temps show once actual data loads
+  aToday.textContent = `${aTemp.hi[0]}° / ${aTemp.lo[0]}°`;
+  bToday.textContent = `${bTemp.hi[0] ?? "—"}° / ${bTemp.lo[0] ?? "—"}°`;
+
+  const labels = days.map(d => new Date(d + "T12:00:00").toLocaleDateString([], { weekday:"short" }));
+
+  chartTitle.textContent = `${ALabel} vs ${BLabel} — 7-Day (starting today)`;
+  renderTempChart(labels, ALabel, aTemp, BLabel, bTemp);
+
+  const aWind = { peak: aData.windPeak, avg: aData.windAvg };
+  const bWind = alignWindToDays(days, bData);
+  windTitle.textContent = `${ALabel} vs ${BLabel} — Wind (7-Day, starting today)`;
+  renderWindChart(labels, ALabel, aWind, BLabel, bWind);
+
+  const aP = { inches: aData.precipIn, prob: aData.precipProb };
+  const bP = alignPrecipToDays(days, bData);
+
+  const snowAAny = days.some((_, i) => (aData.lo?.[i] != null && aData.lo[i] <= 32 && (aData.precipIn?.[i] || 0) > 0));
+  const bLoAligned = bTemp.lo;
+  const snowBAny = days.some((_, i) => (bLoAligned?.[i] != null && bLoAligned[i] <= 32 && (bP.inches?.[i] || 0) > 0));
+
+  CURRENT.aLo = aData.lo;
+  CURRENT.bLo = bLoAligned;
+  CURRENT.aPIn = aData.precipIn;
+  CURRENT.bPIn = bP.inches;
+  CURRENT.snowAAny = snowAAny;
+  CURRENT.snowBAny = snowBAny;
+
+  precipTitle.textContent = `${ALabel} vs ${BLabel} — Precip (7-Day, starting today)`;
+  renderPrecipChart(labels, ALabel, aP, BLabel, bP);
+
+  if (!demo) {
+    [aTitle, aToday, bTitle, bGuideBtn, bToday, chartTitle, windTitle, precipTitle].forEach(el => el.classList.remove("demo"));
+  }
+
+  destSoonCity.textContent = `Destination: ${bTitle.textContent || DEMO_DEST}`;
+}
+
+/* ========= Compare ========= */
+async function compare() {
+  const aText = (locA.value || "").trim();
+  const bText = (locB.value || "").trim();
+
+  updateMapsLink();
+
+  if (!aText || !bText) {
+    status.textContent = "Enter I’m leaving from and I’m going to, then tap Compare Weather.";
+    return;
+  }
+
+  status.textContent = "";
+  compareBtn.disabled = true;
+
+  try {
+    await loadAndRenderPair(aText, bText, { demo:false });
+  } catch (e) {
+    status.textContent = e?.message || String(e);
+  } finally {
+    compareBtn.disabled = false;
+  }
+}
+
+/* ========= Boot ========= */
+updateMapsLink();
+setMainHelper(HELPER_BEFORE);
+wbApplySeeDoIconAndImpression(); // icon A/B + 1 impression/day/device
+renderDemoImmediately();         // instant filled UI
+
+// silent real demo data swap (no "Loading..." text)
+(async () => {
+  try { await loadAndRenderPair(DEMO_ORIGIN, DEMO_DEST, { demo:true }); } catch {}
+})();
 </script>
 
 </body>
