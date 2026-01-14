@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Compare Weather: Here vs There</title>
+
+<style>
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 16px;
+    background: #fafafa;
+    color: #111;
+  }
+
+  h1 {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+  }
+
+  .inputs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  input {
+    padding: 6px 8px;
+    font-size: 0.9rem;
+    flex: 1;
+    min-width: 140px;
+  }
+
+  button {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .city-block {
+    margin-bottom: 10px;
+  }
+
+  .city-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+  }
+
+  .forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    gap: 2px;
+  }
+
+  .day {
+    font-size: 0.7rem;
+    color: #555;
+  }
+
+  .icon {
+    font-size: 1.4rem;
+    line-height: 1.2;
+  }
+
+  .temp {
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 700px) {
+    .compare {
+      display: flex;
+      gap: 12px;
+    }
+    .city-block {
+      flex: 1;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<h1>Compare Weather: Here vs There</h1>
+
+<div class="inputs">
+  <input id="cityA" placeholder="City A (e.g. Flagstaff)" />
+  <input id="cityB" placeholder="City B (e.g. Phoenix)" />
+  <button onclick="loadWeather()">Compare</button>
+</div>
+
+<div id="results" class="compare"></div>
+
+<script>
+const API_KEY = "YOUR_API_KEY_HERE";
+
+function iconFromCode(code) {
+  if (code.includes("01")) return "☀️";
+  if (code.includes("02")) return "⛅";
+  if (code.includes("03") || code.includes("04")) return "☁️";
+  if (code.includes("09") || code.includes("10")) return "🌧";
+  if (code.includes("11")) return "⛈";
+  if (code.includes("13")) return "❄️";
+  if (code.includes("50")) return "🌫";
+  return "❓";
+}
+
+function weekdayLabel(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return offset === 0
+    ? "Today"
+    : d.toLocaleDateString(undefined, { weekday: "short" });
+}
+
+async function fetchForecast(city) {
+  const geo = await fetch(
+    `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${API_KEY}`
+  ).then(r => r.json());
+
+  if (!geo[0]) throw new Error("City not found");
+
+  const { lat, lon, name } = geo[0];
+
+  const data = await fetch(
+    `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=minutely,hourly,alerts&units=imperial&appid=${API_KEY}`
+  ).then(r => r.json());
+
+  return { name, days: data.daily.slice(0, 7) };
+}
+
+function renderCity(cityData) {
+  let html = `<div class="city-block">
+    <div class="city-name">${cityData.name}</div>
+    <div class="forecast-grid">`;
+
+  cityData.days.forEach((day, i) => {
+    html += `
+      <div class="day">${weekdayLabel(i)}</div>
+    `;
+  });
+
+  cityData.days.forEach(day => {
+    html += `
+      <div class="icon">${iconFromCode(day.weather[0].icon)}</div>
+    `;
+  });
+
+  cityData.days.forEach(day => {
+    html += `
+      <div class="temp">${Math.round(day.temp.max)}/${Math.round(day.temp.min)}</div>
+    `;
+  });
+
+  html += `</div></div>`;
+  return html;
+}
+
+async function loadWeather() {
+  const cityA = document.getElementById("cityA").value.trim();
+  const cityB = document.getElementById("cityB").value.trim();
+  const results = document.getElementById("results");
+
+  results.innerHTML = "Loading…";
+
+  try {
+    const [a, b] = await Promise.all([
+      fetchForecast(cityA),
+      fetchForecast(cityB)
+    ]);
+
+    results.innerHTML = renderCity(a) + renderCity(b);
+  } catch (e) {
+    results.innerHTML = "Unable to load weather data.";
+    console.error(e);
+  }
+}
+</script>
+
+</body>
+</html>
