@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Follow the weather</title>
+
+  <style>
+    :root{
+      --bg:#f5f6f8;
+      --card:#ffffff;
+      --text:#1a1a1a;
+      --muted:#6b7280;
+      --border:#d1d5db;
+    }
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    /* HEADER */
+    header{
+      padding:26px 16px;
+      display:flex;
+      justify-content:center;
+      border-bottom:1px solid var(--border);
+      background:var(--bg);
+      position:sticky;
+      top:0;
+      z-index:5;
+    }
+
+    .titleWrap{
+      display:flex;
+      align-items:center;
+      gap:20px;
+    }
+
+    header h1{
+      margin:0;
+      font-size:26px;
+      font-weight:900;
+      letter-spacing:.2px;
+      white-space:nowrap;
+    }
+
+    .icon{
+      font-size:44px;     /* BIG icons */
+      line-height:1;
+      display:inline-block;
+    }
+
+    /* force directions */
+    .van{
+      transform: scaleX(-1); /* face LEFT */
+    }
+
+    .car{
+      transform: scaleX(1);  /* face RIGHT */
+    }
+
+    /* MAIN */
+    main{
+      padding:32px 14px 48px;
+      max-width:1100px;
+      margin:0 auto;
+    }
+
+    .hero{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:20px;
+      margin-top:8px;
+    }
+
+    .pair{
+      width:100%;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:18px;
+      max-width:760px;
+    }
+
+    @media (min-width:740px){
+      .pair{ grid-template-columns:1fr 1fr; }
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:20px;
+      box-shadow:0 4px 12px rgba(0,0,0,.05);
+    }
+
+    .question{
+      font-size:15px;
+      font-weight:700;
+      color:var(--muted);
+      margin:0 0 14px;
+      line-height:1.4;
+    }
+
+    input{
+      width:100%;
+      padding:14px 14px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:#f9fafb;
+      color:var(--text);
+      outline:none;
+      font-size:16px;
+    }
+
+    input::placeholder{
+      color:rgba(107,114,128,.65);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="titleWrap">
+      <span class="icon van">🚐</span>
+      <h1>Follow the weather</h1>
+      <span class="icon car">🚙</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+
+      <div class="pair">
+
+        <div class="card">
+          <p class="question">
+            What is the closest city you’re leaving from?
+          </p>
+          <input
+            id="locA"
+            placeholder="Enter city"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="card">
+          <p class="question">
+            What is the closest city you’re going to?
+          </p>
+          <input
+            id="locB"
+            placeholder="Enter city"
+            autocomplete="off"
+          />
+        </div>
+
+      </div>
+
+    </section>
+  </main>
+</body>
+</html>
