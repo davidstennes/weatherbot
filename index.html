@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+
+<title>Compare Weather: Here vs There</title>
+
+<meta name="description" content="See what it’s like where you are and where you’re going. Compare weather for the next 7 days—temperature, wind, and precipitation in one clean view." />
+<link rel="canonical" href="https://davidstennes.github.io/weatherbot/" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Compare Weather: Here vs There" />
+<meta property="og:title" content="Compare Weather: Here vs There" />
+<meta property="og:description" content="See what it’s like where you are and where you’re going over the next 7 days." />
+<meta property="og:url" content="https://davidstennes.github.io/weatherbot/" />
+
+<!-- Chart.js (safe) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { font-family: system-ui, sans-serif; margin:0; padding:16px; background:#f7f7f7; }
+h3 { margin:0; }
+.panel,.card,.chartWrap { background:#fff;padding:16px;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.row { display:grid; grid-template-columns:1fr; gap:10px; }
+@media (min-width:780px){ .row{grid-template-columns:1fr 1fr auto;align-items:center;} }
+input{width:100%;padding:10px;border-radius:10px;border:1px solid #ccc;}
+button{padding:12px 14px;border-radius:10px;border:none;background:#0077cc;color:#fff;font-weight:800;}
+button:disabled{opacity:.55}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:14px;}
+.temp{font-size:1.45rem;font-weight:900}
+.small{font-size:.9rem;color:#666;margin-top:6px}
+.demo{color:#8f8f8f;font-style:italic}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.legend-item{display:flex;align-items:center;gap:10px;background:#f4f4f4;padding:6px 10px;border-radius:10px}
+.legend-line{width:70px;border-top:3px solid;position:relative}
+.legend-dot{position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:10px;height:10px;background:currentColor;border-radius:50%}
+.legend-dot.diamond{border-radius:2px;transform:translateX(-50%) rotate(45deg)}
+.tabbar{display:flex;gap:8px;margin-top:12px}
+.tabbtn{background:#e9eef6;border:1px solid #d6dbe3;padding:10px 12px;border-radius:10px;font-weight:900}
+.tabbtn.active{background:#0077cc;color:#fff}
+.backBtn{background:#eef2f7;border:1px solid #d6dbe3;color:#123;font-weight:900}
+</style>
+</head>
+
+<body>
+
+<!-- build badge -->
+<div style="position:fixed;top:8px;right:8px;background:#fff;padding:4px 6px;border:1px solid #ccc;border-radius:8px;font:11px system-ui;z-index:99999;">
+  build: STEP-3
+</div>
+
+<div id="mainView">
+  <div class="panel">
+    <div class="row">
+      <input placeholder="I’m leaving from" disabled>
+      <input placeholder="I’m going to" disabled>
+      <button disabled>Compare Weather</button>
+    </div>
+    <div class="small">Demo mode (Step 3)</div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h3 id="aTitle" class="demo">—</h3>
+      <div id="aToday" class="temp demo">—</div>
+    </div>
+    <div class="card">
+      <h3 id="bTitle" class="demo">—</h3>
+      <div id="bToday" class="temp demo">—</div>
+    </div>
+  </div>
+
+  <div class="chartWrap" style="margin-top:14px;">
+    <div class="tabbar">
+      <button class="tabbtn active">🌡️ Temperature</button>
+    </div>
+    <h3 id="chartTitle" class="demo">—</h3>
+    <canvas id="comboChart" height="260"></canvas>
+    <div id="htmlLegend" class="legend"></div>
+  </div>
+</div>
+
+<script>
+/* ========= DEMO ONLY ========= */
+const DEMO_ORIGIN = "San Diego, CA";
+const DEMO_DEST   = "Flagstaff, AZ";
+
+function renderDemoImmediately(){
+  aTitle.textContent = DEMO_ORIGIN;
+  bTitle.textContent = DEMO_DEST;
+  aToday.textContent = "74° / 60°";
+  bToday.textContent = "52° / 32°";
+  chartTitle.textContent = `${DEMO_ORIGIN} vs ${DEMO_DEST} — 7-Day`;
+
+  const labels=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const COLOR_A="#1f77b4", COLOR_B="#ff7f0e";
+
+  new Chart(comboChart,{
+    type:"line",
+    data:{
+      labels,
+      datasets:[
+        {label:`${DEMO_ORIGIN} High`,data:[74,76,77,75,73,72,71],borderColor:COLOR_A,borderWidth:3},
+        {label:`${DEMO_ORIGIN} Low`,data:[60,61,62,60,59,58,57],borderColor:COLOR_A,borderDash:[2,6]},
+        {label:`${DEMO_DEST} High`,data:[52,54,55,53,51,50,49],borderColor:COLOR_B,borderWidth:3,pointStyle:"rectRot"},
+        {label:`${DEMO_DEST} Low`,data:[32,33,34,33,31,30,29],borderColor:COLOR_B,borderDash:[2,6],pointStyle:"rectRot"}
+      ]
+    },
+    options:{
+      plugins:{legend:{display:false}},
+      scales:{y:{title:{display:true,text:"°F"}}}
+    }
+  });
+}
+
+renderDemoImmediately();
+</script>
+
+</body>
+</html>
