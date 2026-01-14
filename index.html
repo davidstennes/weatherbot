@@ -1,1 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+
+<title>Compare Weather: Here vs There</title>
+
+<meta name="description" content="See what it’s like where you are and where you’re going. Compare weather for the next 7 days—temperature, wind, and precipitation in one clean view." />
+<link rel="canonical" href="https://davidstennes.github.io/weatherbot/" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Compare Weather: Here vs There" />
+<meta property="og:title" content="Compare Weather: Here vs There" />
+<meta property="og:description" content="See what it’s like where you are and where you’re going over the next 7 days." />
+<meta property="og:url" content="https://davidstennes.github.io/weatherbot/" />
+<meta property="og:image" content="https://davidstennes.github.io/weatherbot/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+
+<!-- Twitter/X -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Compare Weather: Here vs There" />
+<meta name="twitter:description" content="See what it’s like where you are and where you’re going over the next 7 days." />
+<meta name="twitter:image" content="https://davidstennes.github.io/weatherbot/og-image.png" />
+
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f7f7f7; }
+  h2,h3 { margin: 0; }
+
+  .panel, .card, .chartWrap {
+    background: #fff; padding: 16px; border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+
+  .row { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 780px) { .row { grid-template-columns: 1fr 1fr auto; align-items: center; } }
+
+  input {
+    width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; font-size: 1rem;
+  }
+  input::placeholder { color: #8a8a8a; font-weight: 600; }
+
+  button {
+    padding: 12px 14px; border-radius: 10px; border: none;
+    background: #0077cc; color: #fff; font-weight: 800; cursor: pointer;
+  }
+  button:hover { opacity: .92; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 16px; margin-top: 14px; }
+  .temp { font-size: 1.45rem; font-weight: 900; }
+  .small { font-size: .9rem; color: #666; line-height: 1.25; margin-top: 6px; }
+
+  .actions { margin-top: 14px; }
+  .wideBtn { width: 100%; font-size: 1.1rem; }
+
+  .legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
+  .legend-item {
+    display:flex; align-items:center; gap:10px;
+    background:#f4f4f4; padding:6px 10px; border-radius:10px;
+    cursor:pointer; user-select:none;
+  }
+  .legend-line {
+    width: 70px;
+    height: 0;
+    border-top-width: 3px;
+    border-top-style: solid;
+    position: relative;
+  }
+  .legend-dot {
+    position:absolute; top:-6px; left:50%;
+    transform:translateX(-50%);
+    width:10px; height:10px;
+    background: currentColor;
+    border-radius:50%;
+  }
+  .legend-dot.diamond {
+    border-radius: 2px;
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  /* Header */
+  .brand { margin: 0 0 10px 0; }
+  .brandTitle { font-size: 1.55rem; font-weight: 950; margin: 0; }
+  .brandSub { margin: 4px 0 0 0; font-size: .95rem; color: #444; font-weight: 750; }
+
+  /* Leaving from / Destination inline label + input */
+  .fieldRow { display:flex; align-items:center; gap:10px; }
+  .fieldLabelInline {
+    font-size:.92rem; font-weight:900; color:#333;
+    white-space:nowrap; min-width:110px;
+  }
+  @media (max-width: 420px) { .fieldLabelInline { min-width: 108px; } }
+
+  /* Maps link (same tab, no popup) */
+  .mapsLink {
+    display:none;
+    margin-top:10px;
+    font-weight:900;
+    color:#0077cc;
+    text-decoration:none;
+  }
+  .mapsLink:hover { text-decoration:underline; }
+
+  /* Tabs */
+  .tabbar { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .tabbtn {
+    background:#e9eef6; color:#123; border:1px solid #d6dbe3;
+    padding:10px 12px; border-radius:10px; font-weight:900;
+    cursor: pointer;
+  }
+  .tabbtn.active { background:#0077cc; color:#fff; border-color:#0077cc; }
+
+  /* Back button */
+  .backBtn {
+    background:#eef2f7; color:#123; border:1px solid #d6dbe3;
+    font-weight:900;
+  }
+
+  /* Demo styling */
+  .demo { color:#8f8f8f; font-style: italic; }
+
+  /* Destination header row + 2-line action box */
+  .cityHeaderRow{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+  }
+
+  .cityActionBox{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    padding:8px 10px;
+    border-radius:10px;
+    border:1px solid #d6dbe3;
+    background:#eef2f7;
+    cursor:pointer;
+    font-weight:900;
+    line-height:1.1;
+    color:#123;
+  }
+  .cityActionBox:hover{ filter:brightness(0.98); }
+  .actionMain{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:.95rem;
+  }
+  .actionIcon{ font-size:1rem; line-height:1; }
+  .actionSub{
+    font-size:.8rem;
+    font-weight:750;
+    color:#666;
+  }
+
+  /* Coming soon panel */
+  .soonPanel {
+    display:none;
+    margin-top:12px;
+    background:#fff;
+    border-radius:14px;
+    padding:14px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .soonHeader{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .soonTitle{ font-weight:950; margin:0; }
+  .soonClose{
+    background:#eef2f7; color:#123; border:1px solid #d6dbe3;
+    border-radius:10px;
+    padding:8px 10px;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .soonList{ margin:10px 0 0 18px; color:#444; }
+
+  /* New helper line under main action button */
+  .mainHelperLine{
+    margin-top:10px;
+    font-size:.92rem;
+    color:#666;
+    font-weight:750;
+    line-height:1.25;
+  }
+
+  /* Simple placeholder blocks for removed charts */
+  .chartPlaceholder{
+    margin-top:12px;
+    background:#f4f4f4;
+    border-radius:12px;
+    padding:14px;
+    color:#666;
+    font-size:.95rem;
+    line-height:1.25;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="mainView">
+  <div class="brand">
+    <div class="brandTitle">Compare Weather: Here vs There</div>
+    <div class="brandSub">See what it’s like where you are and where you’re going.</div>
+  </div>
+
+  <div class="panel">
+    <div class="row" style="margin-top:10px;">
+      <div class="fieldRow">
+        <div class="fieldLabelInline">I’m leaving from</div>
+        <input id="locA" placeholder="City, ZIP, or landmark" aria-label="I’m leaving from" autocomplete="off" spellcheck="false">
+      </div>
+
+      <div class="fieldRow">
+        <div class="fieldLabelInline">I’m going to</div>
+        <input id="locB" placeholder="City, ZIP, or landmark" aria-label="I’m going to" autocomplete="off" spellcheck="false">
+      </div>
+
+      <div>
+        <button id="compareBtn" disabled>Compare Weather</button>
+      </div>
+    </div>
+
+    <a id="mapsLink" class="mapsLink">Open route in Google Maps →</a>
+    <div id="status" class="small">
+      Recovery mode: JavaScript is disabled. This page is a static preview shell.
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h3 id="aTitle" class="demo">—</h3>
+      <div id="aToday" class="temp demo">This will tell you the temperature where you are.</div>
+      <div class="small demo"></div>
+    </div>
+
+    <div class="card">
+      <div class="cityHeaderRow">
+        <h3 id="bTitle" class="demo">—</h3>
+
+        <button
+          id="bGuideBtn"
+          class="cityActionBox demo"
+          type="button"
+          disabled
+          aria-label="See and do at destination city"
+        >
+          <span class="actionMain">
+            <span class="actionIcon">👀</span>
+            See &amp; do
+          </span>
+          <span class="actionSub" id="bGuideSub">in —</span>
+        </button>
+      </div>
+
+      <div id="bToday" class="temp demo">This will tell you the temperature where you’re going.</div>
+      <div class="small demo"></div>
+    </div>
+  </div>
+
+  <div id="destSoon" class="soonPanel">
+    <div class="soonHeader">
+      <div>
+        <div class="soonTitle">Destination guide — Coming soon</div>
+        <div id="destSoonCity" class="small">—</div>
+      </div>
+      <button class="soonClose" type="button" disabled>Close</button>
+    </div>
+
+    <ul class="soonList">
+      <li>What to pack for the forecast (rain, wind, heat, cold)</li>
+      <li>Local services &amp; essentials (groceries, fuel, pharmacy)</li>
+      <li>Things to do &amp; quick highlights</li>
+      <li>Travel helpers (hotels, transit, rentals)</li>
+    </ul>
+    <div class="small" style="margin-top:10px;">
+      This will become a helpful city panel (no spammy ads).
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="wideBtn" disabled>Compare weather for the next 7 days</button>
+    <div id="mainHelperText" class="mainHelperLine">
+      This will show the next 7 days for where you are and where you’re going.
+    </div>
+  </div>
+</div>
+
+<!-- Temperature chart view (static placeholder) -->
+<div id="chartView" style="display:none;">
+  <button class="backBtn" disabled>← Back to Today</button>
+
+  <div class="chartWrap" style="margin-top:12px;">
+    <div class="tabbar">
+      <button id="tabTemp" class="tabbtn active" disabled>🌡️ Temperature</button>
+      <button id="tabWind" class="tabbtn" disabled>💨 Wind</button>
+      <button id="tabPrecip" class="tabbtn" disabled>🌧️ Precip</button>
+    </div>
+
+    <h3 id="chartTitle" style="margin-top:12px;" class="demo">—</h3>
+
+    <div class="chartPlaceholder">
+      Chart placeholder (JavaScript disabled). Temperature comparison will appear here.
+    </div>
+
+    <div id="htmlLegend" class="legend"></div>
+    <p class="small">Color = location · Solid = high · Dotted = low</p>
+  </div>
+</div>
+
+<!-- Wind chart view (static placeholder) -->
+<div id="windView" style="display:none;">
+  <button class="backBtn" disabled>← Back to Today</button>
+
+  <div class="chartWrap" style="margin-top:12px;">
+    <div class="tabbar">
+      <button id="tabTemp2" class="tabbtn" disabled>🌡️ Temperature</button>
+      <button id="tabWind2" class="tabbtn active" disabled>💨 Wind</button>
+      <button id="tabPrecip2" class="tabbtn" disabled>🌧️ Precip</button>
+    </div>
+
+    <h3 id="windTitle" style="margin-top:12px;" class="demo">—</h3>
+
+    <div class="chartPlaceholder">
+      Chart placeholder (JavaScript disabled). Wind comparison will appear here.
+    </div>
+
+    <div id="windLegend" class="legend"></div>
+    <p class="small">Color = location · Solid = peak · Dotted = average</p>
+  </div>
+</div>
+
+<!-- Precip chart view (static placeholder) -->
+<div id="precipView" style="display:none;">
+  <button class="backBtn" disabled>← Back to Today</button>
+
+  <div class="chartWrap" style="margin-top:12px;">
+    <div class="tabbar">
+      <button id="tabTemp3" class="tabbtn" disabled>🌡️ Temperature</button>
+      <button id="tabWind3" class="tabbtn" disabled>💨 Wind</button>
+      <button id="tabPrecip3" class="tabbtn active" disabled>🌧️ Precip</button>
+    </div>
+
+    <h3 id="precipTitle" style="margin-top:12px;" class="demo">—</h3>
+
+    <div class="chartPlaceholder">
+      Chart placeholder (JavaScript disabled). Precip comparison will appear here.
+    </div>
+
+    <div id="precipLegend" class="legend"></div>
+    <p class="small">Precip (Rain &amp; Snow) · Solid = total precip (in) · Dotted = chance (%)</p>
+  </div>
+</div>
+
+</body>
+</html>
 
