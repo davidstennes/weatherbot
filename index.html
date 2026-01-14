@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Compare  Weather: Here vs There</title>
+
+  <meta name="description" content="See what it’s like where you are and where you’re going. Compare weather for the next 7 days—temperature, wind, and precipitation in one clean view." />
+  <link rel="canonical" href="https://davidstennes.github.io/weatherbot/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Compare Weather: Here vs There" />
+  <meta property="og:title" content="Compare Weather: Here vs There" />
+  <meta property="og:description" content="See what it’s like where you are and where you’re going over the next 7 days." />
+  <meta property="og:url" content="https://davidstennes.github.io/weatherbot/" />
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#0f1a2e;
+      --text:#e9eefc;
+      --muted:#aeb9d6;
+      --accent:#6aa7ff;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:radial-gradient(1200px 600px at 20% 0%, #111d35 0%, var(--bg) 60%);
+      color:var(--text);
+    }
+    header{
+      padding:18px 16px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      background:rgba(11,18,32,.6);
+      backdrop-filter: blur(10px);
+      position:sticky;
+      top:0;
+      z-index:5;
+    }
+    header h1{ margin:0; font-size:18px; letter-spacing:.2px; }
+    header .version{
+      font-size:12px;
+      color:var(--muted);
+      padding:6px 10px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      white-space:nowrap;
+    }
+
+    main{padding:14px 14px 26px; max-width:1100px; margin:0 auto;}
+    .grid{display:grid; grid-template-columns: 1fr; gap:12px;}
+    @media (min-width:880px){
+      .grid{ grid-template-columns: 1fr 1fr; }
+    }
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      padding:14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.25);
+    }
+    .card h2{
+      margin:0 0 10px;
+      font-size:15px;
+      color:#f2f5ff;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .sub{margin:0 0 12px; font-size:13px; color:var(--muted); line-height:1.35;}
+
+    .row{display:flex; gap:10px; flex-wrap:wrap;}
+    .field{flex:1 1 220px; min-width:220px;}
+    label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px;}
+    input{
+      width:100%;
+      padding:12px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.25);
+      color:var(--text);
+      outline:none;
+    }
+    input::placeholder{color:rgba(174,185,214,.65)}
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;}
+    button{
+      border:1px solid rgba(255,255,255,.12);
+      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      cursor:pointer;
+      font-weight:600;
+      font-size:13px;
+    }
+    button:hover{background:rgba(255,255,255,.10)}
+    button.primary{
+      border-color:rgba(106,167,255,.40);
+      box-shadow: 0 0 0 3px rgba(106,167,255,.12) inset;
+    }
+    .pill{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      color:var(--muted);
+      background:rgba(255,255,255,.04);
+      white-space:nowrap;
+    }
+
+    .tabs{display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 0;}
+    .tabbtn{
+      padding:10px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.10);
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .tabbtn.active{
+      color:var(--text);
+      border-color:rgba(106,167,255,.45);
+      box-shadow:0 0 0 3px rgba(106,167,255,.14) inset;
+      background:rgba(106,167,255,.08);
+    }
+
+    .view{display:none;}
+    .view.active{display:block;}
+
+    .kpis{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
+    @media (min-width:880px){
+      .kpis{ grid-template-columns: 1fr 1fr 1fr 1fr; }
+    }
+    .kpi{
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      padding:10px 10px 9px;
+      min-height:68px;
+    }
+    .kpi .t{font-size:12px; color:var(--muted); margin:0 0 6px;}
+    .kpi .v{font-size:18px; font-weight:800; margin:0;}
+    .kpi .s{font-size:12px; color:rgba(174,185,214,.82); margin:6px 0 0;}
+    .status{margin-top:10px; font-size:12px; color:var(--muted); line-height:1.4;}
+
+    .dailylist{margin-top:10px; display:grid; grid-template-columns: 1fr; gap:8px;}
+    @media(min-width:880px){ .dailylist{grid-template-columns: 1fr 1fr;} }
+    .dayrow{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:10px 10px; border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+    }
+    .dayrow .left{display:flex; flex-direction:column; gap:2px; min-width:120px;}
+    .dayrow .dow{font-weight:800; font-size:13px;}
+    .dayrow .date{color:var(--muted); font-size:12px;}
+    .dayrow .mid{display:flex; align-items:center; gap:10px; flex:1; justify-content:center; color:var(--muted); font-size:12px;}
+    .wxicon{font-size:18px; filter: drop-shadow(0 2px 8px rgba(0,0,0,.2));}
+    .temps{display:flex; align-items:baseline; gap:8px; justify-content:flex-end; min-width:120px;}
+    .hi{font-weight:900; font-size:15px;}
+    .lo{color:rgba(174,185,214,.85); font-weight:800; font-size:13px;}
+
+    .chartwrap{position:relative; height:340px; width:100%; margin-top:10px;}
+    @media (min-width:880px){ .chartwrap{height:380px;} }
+    .smallbtn{
+      padding:8px 10px;
+      border-radius:10px;
+      font-size:12px;
+      font-weight:800;
+      color:var(--text);
+      background:rgba(255,255,255,.04);
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>Compare Weather: Here vs There</h1>
+  <div class="version">v1.4h · fixed tab switching</div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>
+      Locations
+      <span class="pill" id="tzPill">Local time</span>
+    </h2>
+    <p class="sub">
+      Enter two places. “Here” can auto-detect using your device location. Then click Compare.
+      The 7-Day, Rain/Precip, and Wind tabs show charts.
+    </p>
+
+    <div class="row">
+      <div class="field">
+        <label for="locA">Location A (Here)</label>
+        <input id="locA" placeholder="Example: Phoenix, AZ" value="San Diego, CA" />
+      </div>
+      <div class="field">
+        <label for="locB">Location B (There)</label>
+        <input id="locB" placeholder="Example: Flagstaff, AZ" value="Flagstaff, AZ" />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="btnCompare">Compare</button>
+      <button id="btnHere">Use my location for “Here”</button>
+      <button id="btnSwap">Swap</button>
+      <span class="pill" id="statusPill">Ready</span>
+    </div>
+
+    <!-- DEFAULT TAB IS 7-DAY -->
+    <div class="tabs">
+      <button class="tabbtn" data-view="view_summary" id="tabSummary">Summary</button>
+      <button class="tabbtn active" data-view="view_7day" id="tab7Day">7-Day</button>
+      <button class="tabbtn" data-view="view_precip" id="tabPrecip">Rain / Precip</button>
+      <button class="tabbtn" data-view="view_wind" id="tabWind">Wind</button>
+    </div>
+  </section>
+
+  <!-- SUMMARY VIEW (NOT DEFAULT) -->
+  <section class="view" id="view_summary">
+    <div class="grid">
+      <div class="card">
+        <h2>
+          Current weather conditions · Location A
+          <span class="pill" id="labelA">—</span>
+        </h2>
+        <div class="kpis">
+          <div class="kpi"><p class="t">Temperature</p><p class="v" id="a_temp">—</p><p class="s" id="a_icon">—</p></div>
+          <div class="kpi"><p class="t">Wind</p><p class="v" id="a_wind">—</p><p class="s" id="a_wdir">—</p></div>
+          <div class="kpi"><p class="t">Precip today</p><p class="v" id="a_prcp">—</p><p class="s" id="a_prcpProb">—</p></div>
+          <div class="kpi"><p class="t">Feels / Humidity</p><p class="v" id="a_misc">—</p><p class="s" id="a_time">—</p></div>
+        </div>
+        <div class="status" id="statusA">—</div>
+      </div>
+
+      <div class="card">
+        <h2>
+          Current weather conditions · Location B
+          <span class="pill" id="labelB">—</span>
+        </h2>
+        <div class="kpis">
+          <div class="kpi"><p class="t">Temperature</p><p class="v" id="b_temp">—</p><p class="s" id="b_icon">—</p></div>
+          <div class="kpi"><p class="t">Wind</p><p class="v" id="b_wind">—</p><p class="s" id="b_wdir">—</p></div>
+          <div class="kpi"><p class="t">Precip today</p><p class="v" id="b_prcp">—</p><p class="s" id="b_prcpProb">—</p></div>
+          <div class="kpi"><p class="t">Feels / Humidity</p><p class="v" id="b_misc">—</p><p class="s" id="b_time">—</p></div>
+        </div>
+        <div class="status" id="statusB">—</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h2>Next 7 days · quick list (icons next to temps)</h2>
+      <p class="sub">This is the fast “at a glance” list. The charts live under the 7-Day / Rain / Wind tabs.</p>
+      <div class="dailylist" id="dailyList">—</div>
+    </div>
+  </section>
+
+  <!-- 7 DAY VIEW (DEFAULT) -->
+  <section class="view active" id="view_7day">
+    <div class="card">
+      <h2>
+        7-Day Weather Forecast · Temperature comparison
+        <button class="smallbtn" id="btnRedraw7">Redraw</button>
+      </h2>
+      <p class="sub">Highs and lows for both locations.</p>
+      <div class="chartwrap">
+        <canvas id="chartTemp"></canvas>
+      </div>
+      <div class="status" id="status7">—</div>
+    </div>
+  </section>
+
+  <!-- PRECIP VIEW -->
+  <section class="view" id="view_precip">
+    <div class="card">
+      <h2>
+        Rain / Precip · inches (solid) + probability % (dotted)
+        <button class="smallbtn" id="btnRedrawP">Redraw</button>
+      </h2>
+      <p class="sub">Solid lines = precipitation sum (inches). Dotted lines = precipitation probability (%). No bars.</p>
+      <div class="chartwrap">
+        <canvas id="chartPrecip"></canvas>
+      </div>
+      <div class="status" id="statusP">—</div>
+    </div>
+  </section>
+
+  <!-- WIND VIEW -->
+  <section class="view" id="view_wind">
+    <div class="card">
+      <h2>
+        Wind · daily average (mph)
+        <button class="smallbtn" id="btnRedrawW">Redraw</button>
+      </h2>
+      <p class="sub">Daily average wind speed comparison.</p>
+      <div class="chartwrap">
+        <canvas id="chartWind"></canvas>
+      </div>
+      <div class="status" id="statusW">—</div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ============================
+   WeatherBot v1.4h
+   - Keeps your page-1 (Locations card) exactly as-is
+   - FIX: does NOT force-switch tabs after compare finishes
+   - Charts render only when tab is visible (double rAF)
+   - Adds safe guards so chart errors don’t “kill” tab switching
+   ============================ */
+
+const $ = (id)=>document.getElementById(id);
+
+const state = {
+  aGeo: null, bGeo: null,
+  aWx: null, bWx: null,
+  charts: { temp:null, precip:null, wind:null },
+  lastFetchAt: null,
+  activeView: "view_7day"
+};
+
+function setStatus(msg){ $("statusPill").textContent = msg; }
+
+function setTZPill(){
+  try{
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "Local";
+    $("tzPill").textContent = tz;
+  }catch(e){
+    $("tzPill").textContent = "Local time";
+  }
+}
+
+/* ---------- Icon mapping (Open-Meteo weather code) ---------- */
+function wxIcon(code){
+  if (code === 0) return "☀️";
+  if (code === 1 || code === 2) return "🌤️";
+  if (code === 3) return "☁️";
+  if (code === 45 || code === 48) return "🌫️";
+  if (code === 51 || code === 53 || code === 55) return "🌦️";
+  if (code === 56 || code === 57) return "🌧️";
+  if (code === 61 || code === 63 || code === 65) return "🌧️";
+  if (code === 66 || code === 67) return "🌧️";
+  if (code === 71 || code === 73 || code === 75) return "🌨️";
+  if (code === 77) return "🌨️";
+  if (code === 80 || code === 81 || code === 82) return "🌧️";
+  if (code === 85 || code === 86) return "🌨️";
+  if (code === 95) return "⛈️";
+  if (code === 96 || code === 99) return "⛈️";
+  return "🌡️";
+}
+
+/* ---------- Units ---------- */
+function cToF(c){ return (c * 9/5) + 32; }
+function kmhToMph(k){ return k * 0.621371; }
+function mmToIn(mm){ return mm / 25.4; }
+
+function shortName(full){
+  const parts = (full || "").split(",");
+  return (parts[0] || full || "").trim();
+}
+
+/* ---------- Geocoding ---------- */
+async function geocode(name){
+  const url = "https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=" + encodeURIComponent(name);
+  const r = await fetch(url);
+  if(!r.ok) throw new Error("Geocoding failed");
+  const j = await r.json();
+  if(!j.results || !j.results.length) throw new Error("No match for: " + name);
+  const g = j.results[0];
+  return {
+    name: `${g.name}${g.admin1 ? ", " + g.admin1 : ""}${g.country ? ", " + g.country : ""}`,
+    lat: g.latitude, lon: g.longitude,
+    tz: g.timezone || "auto"
+  };
+}
+
+/* ---------- Forecast ---------- */
+async function forecast(geo){
+  const daily = [
+    "weathercode",
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "precipitation_sum",
+    "precipitation_probability_max",
+    "windspeed_10m_max",
+    "winddirection_10m_dominant"
+  ].join(",");
+
+  const current = [
+    "temperature_2m",
+    "relativehumidity_2m",
+    "apparent_temperature",
+    "weathercode",
+    "windspeed_10m",
+    "winddirection_10m"
+  ].join(",");
+
+  const url =
+    "https://api.open-meteo.com/v1/forecast" +
+    `?latitude=${geo.lat}&longitude=${geo.lon}` +
+    `&timezone=${encodeURIComponent(geo.tz || "auto")}` +
+    `&current=${encodeURIComponent(current)}` +
+    `&daily=${encodeURIComponent(daily)}` +
+    "&temperature_unit=celsius&windspeed_unit=kmh&precipitation_unit=mm";
+
+  const r = await fetch(url);
+  if(!r.ok) throw new Error("Forecast failed");
+  return await r.json();
+}
+
+/* ---------- Tabs (CRITICAL) ---------- */
+function setActiveTab(viewId){
+  state.activeView = viewId;
+
+  document.querySelectorAll(".tabbtn").forEach(b=>{
+    b.classList.toggle("active", b.dataset.view === viewId);
+  });
+  document.querySelectorAll(".view").forEach(v=>{
+    v.classList.toggle("active", v.id === viewId);
+  });
+
+  // Render charts ONLY after view is visible (double RAF)
+  requestAnimationFrame(()=> {
+    requestAnimationFrame(()=> {
+      if(viewId === "view_7day") ensureTempChart(false);
+      if(viewId === "view_precip") ensurePrecipChart(false);
+      if(viewId === "view_wind") ensureWindChart(false);
+    });
+  });
+}
+
+document.querySelectorAll(".tabbtn").forEach(btn=>{
+  btn.addEventListener("click", ()=> setActiveTab(btn.dataset.view));
+});
+
+/* ---------- Compare flow ---------- */
+async function doCompare(){
+  const aName = $("locA").value.trim();
+  const bName = $("locB").value.trim();
+  if(!aName || !bName){
+    setStatus("Enter two locations");
+    return;
+  }
+
+  setStatus("Looking up locations…");
+  try{
+    const [aGeo, bGeo] = await Promise.all([geocode(aName), geocode(bName)]);
+    state.aGeo = aGeo; state.bGeo = bGeo;
+
+    $("labelA").textContent = aGeo.name;
+    $("labelB").textContent = bGeo.name;
+
+    setStatus("Fetching forecast…");
+    const [aWx, bWx] = await Promise.all([forecast(aGeo), forecast(bGeo)]);
+    state.aWx = aWx; state.bWx = bWx;
+    state.lastFetchAt = new Date();
+
+    renderSummary();
+    renderDailyList();
+
+    // Redraw chart for CURRENT tab only (no tab switching)
+    const activeView = document.querySelector(".view.active")?.id || state.activeView || "view_7day";
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      if(activeView === "view_7day") ensureTempChart(true);
+      if(activeView === "view_precip") ensurePrecipChart(true);
+      if(activeView === "view_wind") ensureWindChart(true);
+    }));
+
+    setStatus("Updated");
+  }catch(err){
+    console.error(err);
+    setStatus(err.message || "Something went wrong");
+  }
+}
+
+/* ---------- Summary render ---------- */
+function renderSummary(){
+  const a = state.aWx, b = state.bWx;
+  if(!a || !b) return;
+
+  const aCur = a.current;
+  $("a_temp").textContent = `${Math.round(cToF(aCur.temperature_2m))}°F`;
+  $("a_icon").textContent = `${wxIcon(aCur.weathercode)}  code ${aCur.weathercode}`;
+  $("a_wind").textContent = `${Math.round(kmhToMph(aCur.windspeed_10m))} mph`;
+  $("a_wdir").textContent = `dir ${Math.round(aCur.winddirection_10m)}°`;
+  $("a_prcp").textContent = `${mmToIn(a.daily.precipitation_sum?.[0] ?? 0).toFixed(2)} in`;
+  const aProb = a.daily.precipitation_probability_max?.[0];
+  $("a_prcpProb").textContent = (aProb==null) ? "—" : `${Math.round(aProb)}% chance`;
+  $("a_misc").textContent = `${Math.round(cToF(aCur.apparent_temperature))}°F / ${Math.round(aCur.relativehumidity_2m)}%`;
+  $("a_time").textContent = state.lastFetchAt ? new Intl.DateTimeFormat(undefined, { weekday:'short', hour:'numeric', minute:'2-digit' }).format(state.lastFetchAt) : "—";
+  $("statusA").textContent = `Lat ${state.aGeo.lat.toFixed(3)}, Lon ${state.aGeo.lon.toFixed(3)} · Timezone: ${state.aGeo.tz}`;
+
+  const bCur = b.current;
+  $("b_temp").textContent = `${Math.round(cToF(bCur.temperature_2m))}°F`;
+  $("b_icon").textContent = `${wxIcon(bCur.weathercode)}  code ${bCur.weathercode}`;
+  $("b_wind").textContent = `${Math.round(kmhToMph(bCur.windspeed_10m))} mph`;
+  $("b_wdir").textContent = `dir ${Math.round(bCur.winddirection_10m)}°`;
+  $("b_prcp").textContent = `${mmToIn(b.daily.precipitation_sum?.[0] ?? 0).toFixed(2)} in`;
+  const bProb = b.daily.precipitation_probability_max?.[0];
+  $("b_prcpProb").textContent = (bProb==null) ? "—" : `${Math.round(bProb)}% chance`;
+  $("b_misc").textContent = `${Math.round(cToF(bCur.apparent_temperature))}°F / ${Math.round(bCur.relativehumidity_2m)}%`;
+  $("b_time").textContent = state.lastFetchAt ? new Intl.DateTimeFormat(undefined, { weekday:'short', hour:'numeric', minute:'2-digit' }).format(state.lastFetchAt) : "—";
+  $("statusB").textContent = `Lat ${state.bGeo.lat.toFixed(3)}, Lon ${state.bGeo.lon.toFixed(3)} · Timezone: ${state.bGeo.tz}`;
+}
+
+/* ---------- Daily list ---------- */
+function renderDailyList(){
+  const a = state.aWx, b = state.bWx;
+  if(!a || !b){ $("dailyList").textContent="—"; return; }
+
+  const fmt = new Intl.DateTimeFormat(undefined, { weekday:'short', month:'short', day:'numeric' });
+  const rows = [];
+
+  for(let i=0;i<a.daily.time.length;i++){
+    const d = new Date(a.daily.time[i] + "T00:00:00");
+    const dow = new Intl.DateTimeFormat(undefined, { weekday:'short' }).format(d);
+    const dateStr = fmt.format(d);
+
+    const aHi = Math.round(cToF(a.daily.temperature_2m_max[i]));
+    const aLo = Math.round(cToF(a.daily.temperature_2m_min[i]));
+    const bHi = Math.round(cToF(b.daily.temperature_2m_max[i]));
+    const bLo = Math.round(cToF(b.daily.temperature_2m_min[i]));
+    const aIc = wxIcon(a.daily.weathercode[i]);
+    const bIc = wxIcon(b.daily.weathercode[i]);
+
+    rows.push(`
+      <div class="dayrow">
+        <div class="left">
+          <div class="dow">${dow}</div>
+          <div class="date">${dateStr}</div>
+        </div>
+        <div class="mid">
+          <div style="min-width:120px">
+            <span class="wxicon">${aIc}</span>
+            <span style="margin-left:6px">${shortName(state.aGeo.name)}</span>
+            <span style="margin-left:6px">${aHi}° / ${aLo}°</span>
+          </div>
+          <div style="min-width:120px">
+            <span class="wxicon">${bIc}</span>
+            <span style="margin-left:6px">${shortName(state.bGeo.name)}</span>
+            <span style="margin-left:6px">${bHi}° / ${bLo}°</span>
+          </div>
+        </div>
+        <div class="temps">
+          <span class="hi">${Math.max(aHi,bHi)}°</span>
+          <span class="lo">${Math.min(aLo,bLo)}°</span>
+        </div>
+      </div>
+    `);
+  }
+
+  $("dailyList").innerHTML = rows.join("");
+}
+
+/* ---------- Charts ---------- */
+function destroyChart(key){
+  const c = state.charts[key];
+  if(c){ try{ c.destroy(); }catch(e){} state.charts[key]=null; }
+}
+
+function labelsFromDaily(){
+  const a = state.aWx;
+  return a.daily.time.map(t=>{
+    const d = new Date(t + "T00:00:00");
+    return new Intl.DateTimeFormat(undefined, { weekday:'short' }).format(d);
+  });
+}
+
+function chartSafe(buildFn, statusEl){
+  try{
+    if(typeof Chart === "undefined"){
+      statusEl.textContent = "Chart.js did not load (Chart is undefined). Check your internet/CDN.";
+      return false;
+    }
+    buildFn();
+    return true;
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = "Chart error: " + (err?.message || String(err));
+    return false;
+  }
+}
+
+function ensureTempChart(force=false){
+  const statusEl = $("status7");
+  if(!state.aWx || !state.bWx){ statusEl.textContent = "Compare two locations first."; return; }
+  const canvas = $("chartTemp");
+  if(!canvas){ statusEl.textContent = "Temp chart canvas missing."; return; }
+
+  if(state.charts.temp && !force){
+    try{ state.charts.temp.resize(); }catch(e){}
+    statusEl.textContent = `Showing 7-day temperature comparison for ${shortName(state.aGeo.name)} vs ${shortName(state.bGeo.name)}.`;
+    return;
+  }
+
+  destroyChart("temp");
+
+  const labels = labelsFromDaily();
+  const aHi = state.aWx.daily.temperature_2m_max.map(c=>cToF(c));
+  const aLo = state.aWx.daily.temperature_2m_min.map(c=>cToF(c));
+  const bHi = state.bWx.daily.temperature_2m_max.map(c=>cToF(c));
+  const bLo = state.bWx.daily.temperature_2m_min.map(c=>cToF(c));
+
+  const ok = chartSafe(()=> {
+    const ctx = canvas.getContext("2d");
+    state.charts.temp = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          { label: `${shortName(state.aGeo.name)} high`, data: aHi, tension: .25, pointRadius: 3 },
+          { label: `${shortName(state.aGeo.name)} low`,  data: aLo, tension: .25, pointRadius: 3, borderDash:[6,4] },
+          { label: `${shortName(state.bGeo.name)} high`, data: bHi, tension: .25, pointRadius: 3 },
+          { label: `${shortName(state.bGeo.name)} low`,  data: bLo, tension: .25, pointRadius: 3, borderDash:[6,4] }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode:"index", intersect:false },
+        plugins: { legend: { labels: { color: "#e9eefc" } } },
+        scales: {
+          x: { ticks: { color:"#aeb9d6" }, grid: { color:"rgba(255,255,255,.06)" } },
+          y: {
+            ticks: { color:"#aeb9d6", callback: (v)=> `${v}°F` },
+            grid: { color:"rgba(255,255,255,.06)" },
+            title: { display:true, text:"°F", color:"#aeb9d6" }
+          }
+        }
+      }
+    });
+    state.charts.temp.resize();
+  }, statusEl);
+
+  if(ok){
+    statusEl.textContent = `Showing 7-day temperature comparison for ${shortName(state.aGeo.name)} vs ${shortName(state.bGeo.name)}.`;
+  }
+}
+
+function ensurePrecipChart(force=false){
+  const statusEl = $("statusP");
+  if(!state.aWx || !state.bWx){ statusEl.textContent = "Compare two locations first."; return; }
+  const canvas = $("chartPrecip");
+  if(!canvas){ statusEl.textContent = "Precip chart canvas missing."; return; }
+
+  if(state.charts.precip && !force){
+    try{ state.charts.precip.resize(); }catch(e){}
+    return;
+  }
+  destroyChart("precip");
+
+  const labels = labelsFromDaily();
+  const aIn = state.aWx.daily.precipitation_sum.map(mm=>mmToIn(mm));
+  const bIn = state.bWx.daily.precipitation_sum.map(mm=>mmToIn(mm));
+  const aProb = (state.aWx.daily.precipitation_probability_max || []).map(p=>p ?? null);
+  const bProb = (state.bWx.daily.precipitation_probability_max || []).map(p=>p ?? null);
+
+  chartSafe(()=> {
+    const ctx = canvas.getContext("2d");
+    state.charts.precip = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          { label: `${shortName(state.aGeo.name)} precip (in)`, data: aIn, tension:.25, pointRadius:3, yAxisID:"yIn" },
+          { label: `${shortName(state.aGeo.name)} chance (%)`, data: aProb, tension:.25, pointRadius:3, yAxisID:"yPct", borderDash:[6,4] },
+          { label: `${shortName(state.bGeo.name)} precip (in)`, data: bIn, tension:.25, pointRadius:3, yAxisID:"yIn" },
+          { label: `${shortName(state.bGeo.name)} chance (%)`, data: bProb, tension:.25, pointRadius:3, yAxisID:"yPct", borderDash:[6,4] }
+        ]
+      },
+      options: {
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{ mode:"index", intersect:false },
+        plugins:{ legend:{ labels:{ color:"#e9eefc" } } },
+        scales:{
+          x:{ ticks:{ color:"#aeb9d6" }, grid:{ color:"rgba(255,255,255,.06)" } },
+          yIn:{ position:"left", ticks:{ color:"#aeb9d6", callback:(v)=> `${v} in` }, grid:{ color:"rgba(255,255,255,.06)" }, title:{ display:true, text:"inches", color:"#aeb9d6" } },
+          yPct:{ position:"right", min:0, max:100, ticks:{ color:"#aeb9d6", callback:(v)=> `${v}%` }, grid:{ drawOnChartArea:false }, title:{ display:true, text:"percent", color:"#aeb9d6" } }
+        }
+      }
+    });
+    state.charts.precip.resize();
+    statusEl.textContent = `Showing precip + chance for ${shortName(state.aGeo.name)} vs ${shortName(state.bGeo.name)}.`;
+  }, statusEl);
+}
+
+function ensureWindChart(force=false){
+  const statusEl = $("statusW");
+  if(!state.aWx || !state.bWx){ statusEl.textContent = "Compare two locations first."; return; }
+  const canvas = $("chartWind");
+  if(!canvas){ statusEl.textContent = "Wind chart canvas missing."; return; }
+
+  if(state.charts.wind && !force){
+    try{ state.charts.wind.resize(); }catch(e){}
+    return;
+  }
+  destroyChart("wind");
+
+  const labels = labelsFromDaily();
+  const aMph = state.aWx.daily.windspeed_10m_max.map(k=>kmhToMph(k));
+  const bMph = state.bWx.daily.windspeed_10m_max.map(k=>kmhToMph(k));
+
+  chartSafe(()=> {
+    const ctx = canvas.getContext("2d");
+    state.charts.wind = new Chart(ctx, {
+      type:"line",
+      data:{ labels, datasets:[
+        { label: `${shortName(state.aGeo.name)} wind (mph)`, data: aMph, tension:.25, pointRadius:3 },
+        { label: `${shortName(state.bGeo.name)} wind (mph)`, data: bMph, tension:.25, pointRadius:3 }
+      ]},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{ mode:"index", intersect:false },
+        plugins:{ legend:{ labels:{ color:"#e9eefc" } } },
+        scales:{
+          x:{ ticks:{ color:"#aeb9d6" }, grid:{ color:"rgba(255,255,255,.06)" } },
+          y:{ ticks:{ color:"#aeb9d6", callback:(v)=> `${v} mph` }, grid:{ color:"rgba(255,255,255,.06)" }, title:{ display:true, text:"mph", color:"#aeb9d6" } }
+        }
+      }
+    });
+    state.charts.wind.resize();
+    statusEl.textContent = `Showing wind for ${shortName(state.aGeo.name)} vs ${shortName(state.bGeo.name)}.`;
+  }, statusEl);
+}
+
+/* ---------- Buttons ---------- */
+$("btnCompare").addEventListener("click", doCompare);
+
+$("btnSwap").addEventListener("click", ()=>{
+  const a = $("locA").value;
+  $("locA").value = $("locB").value;
+  $("locB").value = a;
+});
+
+$("btnHere").addEventListener("click", ()=>{
+  if(!navigator.geolocation){ setStatus("Geolocation not available"); return; }
+  setStatus("Getting your location…");
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    try{
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const hereName = `Here (${lat.toFixed(3)}, ${lon.toFixed(3)})`;
+      $("locA").value = hereName;
+      state.aGeo = { name: hereName, lat, lon, tz:"auto" };
+
+      const bName = $("locB").value.trim();
+      if(!bName) throw new Error("Enter Location B first.");
+
+      state.bGeo = await geocode(bName);
+      $("labelA").textContent = state.aGeo.name;
+      $("labelB").textContent = state.bGeo.name;
+
+      setStatus("Fetching forecast…");
+      const [aWx, bWx] = await Promise.all([forecast(state.aGeo), forecast(state.bGeo)]);
+      state.aWx = aWx; state.bWx = bWx;
+      state.lastFetchAt = new Date();
+
+      renderSummary();
+      renderDailyList();
+
+      // Redraw chart for current tab only (no tab switching)
+      const activeView = document.querySelector(".view.active")?.id || state.activeView || "view_7day";
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        if(activeView === "view_7day") ensureTempChart(true);
+        if(activeView === "view_precip") ensurePrecipChart(true);
+        if(activeView === "view_wind") ensureWindChart(true);
+      }));
+
+      setStatus("Updated");
+    }catch(err){
+      console.error(err);
+      setStatus(err.message || "Could not use your location");
+    }
+  }, ()=> setStatus("Location permission denied"), { enableHighAccuracy:false, timeout:8000 });
+});
+
+$("btnRedraw7").addEventListener("click", ()=>ensureTempChart(true));
+$("btnRedrawP").addEventListener("click", ()=>ensurePrecipChart(true));
+$("btnRedrawW").addEventListener("click", ()=>ensureWindChart(true));
+
+/* ---------- Boot ---------- */
+setTZPill();
+setStatus("Loading…");
+
+// Set default tab ONCE. Do not force it again later.
+setActiveTab("view_7day");
+
+// Auto-compare on load (your existing behavior), but never yank the user back to 7-day afterward.
+doCompare();
+</script>
+</body>
+</html>
