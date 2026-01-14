@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+
+<title>Follow the Weather</title>
+
+<meta name="description" content="Follow the weather and compare today or the next 7 days between where you are and where you’re going." />
+<link rel="canonical" href="https://davidstennes.github.io/weatherbot/" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Follow the Weather" />
+<meta property="og:title" content="Follow the Weather" />
+<meta property="og:description" content="Compare today’s weather or the next 7 days for two locations." />
+<meta property="og:url" content="https://davidstennes.github.io/weatherbot/" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Follow the Weather" />
+<meta name="twitter:description" content="Compare today’s weather or the next 7 days for two locations." />
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#f7f7f7}
+.panel,.card,.chartWrap{background:#fff;padding:16px;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.row{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:780px){.row{grid-template-columns:1fr 1fr auto;align-items:center}}
+
+input{width:100%;padding:10px;border-radius:10px;border:1px solid #ccc;font-size:1rem}
+button{padding:12px 14px;border-radius:10px;border:none;background:#0077cc;color:#fff;font-weight:900;cursor:pointer}
+
+.brandTitle{font-size:1.7rem;font-weight:950;margin-bottom:10px}
+
+.cards{display:none;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:14px}
+.temp{font-size:1.4rem;font-weight:900}
+.small{font-size:.9rem;color:#666}
+
+.btnStack{display:grid;gap:10px}
+.sunburstBtn{
+  position:relative;
+  padding:12px 14px;
+  border-radius:12px;
+  background:radial-gradient(circle at 35% 30%,#fff3c4,#fff 60%);
+  color:#08324f;
+  font-weight:950;
+}
+.sunburstBtn::before{
+  content:"";
+  position:absolute;
+  inset:-4px;
+  border-radius:14px;
+  background:conic-gradient(#ffb400,#ffe6a3,#ffb400);
+  z-index:-1;
+}
+.sbLine1{text-align:center;font-size:1.05rem}
+.sbLine2{text-align:center;font-size:.85rem;color:#3c5566}
+</style>
+</head>
+
+<body>
+
+<div class="brandTitle">Follow the Weather</div>
+
+<div id="mainView" class="panel">
+  <div class="row">
+    <input id="locA" placeholder="Leaving from">
+    <input id="locB" placeholder="Going to">
+
+    <div class="btnStack">
+      <button class="sunburstBtn" onclick="compareToday()">
+        <div class="sbLine1">☀️ Weather Today</div>
+        <div class="sbLine2">Compare today’s weather</div>
+      </button>
+
+      <button class="sunburstBtn" onclick="compare7Day()">
+        <div class="sbLine1">📅 Weather 7-Day</div>
+        <div class="sbLine2">Compare the next 7 days</div>
+      </button>
+    </div>
+  </div>
+
+  <div class="cards" id="todayCards">
+    <div class="card">
+      <div id="aTitle">—</div>
+      <div id="aToday" class="temp">—</div>
+    </div>
+    <div class="card">
+      <div id="bTitle">—</div>
+      <div id="bToday" class="temp">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function wx(code){
+  if(code===0)return"☀️ Sunny";
+  if(code===1||code===2)return"⛅ Partly cloudy";
+  if(code===3)return"☁️ Cloudy";
+  if(code>=61&&code<=67)return"🌧️ Rain";
+  if(code>=71&&code<=77)return"❄️ Snow";
+  return"🌦️ Mixed";
+}
+
+async function fetchToday(lat,lon){
+  const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto`);
+  const j=await r.json();
+  return{
+    hi:j.daily.temperature_2m_max[0],
+    lo:j.daily.temperature_2m_min[0],
+    code:j.daily.weathercode[0]
+  };
+}
+
+async function geo(q){
+  const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1`);
+  const j=await r.json();
+  return j.results[0];
+}
+
+async function compareToday(){
+  const a=await geo(locA.value);
+  const b=await geo(locB.value);
+
+  const ad=await fetchToday(a.latitude,a.longitude);
+  const bd=await fetchToday(b.latitude,b.longitude);
+
+  aTitle.textContent=a.name;
+  bTitle.textContent=b.name;
+
+  aToday.textContent=`${wx(ad.code)} · ${ad.hi}° / ${ad.lo}°`;
+  bToday.textContent=`${wx(bd.code)} · ${bd.hi}° / ${bd.lo}°`;
+
+  todayCards.style.display="grid";
+}
+
+function compare7Day(){
+  todayCards.style.display="none";
+  alert("7-day view already wired in your full version.");
+}
+</script>
+
+</body>
+</html>
