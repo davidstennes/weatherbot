@@ -3,61 +3,42 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Weather Today</title>
+  <title>Follow the weather</title>
 
   <style>
     :root{
-      --bg:#0b1220;
-      --card:#0f1a2e;
-      --text:#e9eefc;
-      --muted:#aeb9d6;
-      --accent:#6aa7ff;
+      --bg:#f5f6f8;         /* light background */
+      --card:#ffffff;       /* white cards */
+      --text:#1a1a1a;       /* dark text */
+      --muted:#6b7280;      /* medium gray */
+      --accent:#3b82f6;     /* blue accent if needed later */
+      --border:#d1d5db;     /* subtle border */
     }
     *{box-sizing:border-box}
     body{
       margin:0;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-      background:radial-gradient(1200px 600px at 20% 0%, #111d35 0%, var(--bg) 60%);
+      background:var(--bg);
       color:var(--text);
     }
 
     header{
       padding:18px 16px 10px;
       display:flex;
-      align-items:center;
       justify-content:center;
-      border-bottom:1px solid rgba(255,255,255,.06);
-      background:rgba(11,18,32,.6);
-      backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--border);
+      background:var(--bg);
       position:sticky;
       top:0;
       z-index:5;
     }
-    header .wrap{
-      width:100%;
-      max-width:1100px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-    }
     header h1{
       margin:0;
-      font-size:18px;
+      font-size:22px;
+      font-weight:900;
       letter-spacing:.2px;
       text-align:center;
-      flex:1;
     }
-    header .version{
-      font-size:12px;
-      color:var(--muted);
-      padding:6px 10px;
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:999px;
-      background:rgba(255,255,255,.04);
-      white-space:nowrap;
-    }
-    header .spacer{ width:110px; } /* keeps title centered */
 
     main{padding:16px 14px 30px; max-width:1100px; margin:0 auto;}
 
@@ -78,11 +59,12 @@
       margin:6px 0 2px;
     }
     .headline .title{
-      font-size:26px;
+      font-size:28px;
       font-weight:900;
       letter-spacing:.2px;
       margin:0;
       text-align:center;
+      color:var(--text);
     }
 
     .pair{
@@ -97,11 +79,11 @@
     }
 
     .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-      border:1px solid rgba(255,255,255,.08);
+      background:var(--card);
+      border:1px solid var(--border);
       border-radius:18px;
       padding:14px;
-      box-shadow: 0 12px 30px rgba(0,0,0,.25);
+      box-shadow: 0 4px 12px rgba(0,0,0,.05);
     }
 
     .locLabel{
@@ -109,16 +91,16 @@
       color:var(--muted);
       font-weight:800;
       letter-spacing:.25px;
-      text-transform:none;
       margin:0 0 8px;
     }
 
     .cityBig{
       font-size:22px;
-      font-weight:950;
+      font-weight:800;
       letter-spacing:.2px;
       margin:0 0 10px;
       line-height:1.1;
+      color:var(--text);
     }
 
     .inputRow{
@@ -132,75 +114,19 @@
       width:100%;
       padding:12px 12px;
       border-radius:12px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(0,0,0,.25);
+      border:1px solid var(--border);
+      background:#f9fafb;
       color:var(--text);
       outline:none;
       font-size:14px;
     }
-    input::placeholder{color:rgba(174,185,214,.65)}
-
-    .actions{
-      width:100%;
-      max-width:760px;
-      display:flex;
-      justify-content:center;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top:6px;
-    }
-
-    button{
-      border:1px solid rgba(255,255,255,.12);
-      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-      color:var(--text);
-      border-radius:12px;
-      padding:10px 12px;
-      cursor:pointer;
-      font-weight:700;
-      font-size:13px;
-    }
-    button:hover{background:rgba(255,255,255,.10)}
-    button.primary{
-      border-color:rgba(106,167,255,.40);
-      box-shadow: 0 0 0 3px rgba(106,167,255,.12) inset;
-    }
-
-    .tabs{
-      width:100%;
-      max-width:760px;
-      display:flex;
-      justify-content:center;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-top:10px;
-    }
-    .tabpill{
-      padding:10px 12px;
-      border-radius:999px;
-      background:rgba(255,255,255,.04);
-      border:1px solid rgba(255,255,255,.10);
-      color:var(--muted);
-      font-weight:800;
-      letter-spacing:.2px;
-      user-select:none;
-    }
-    .tabpill.active{
-      color:var(--text);
-      border-color:rgba(106,167,255,.45);
-      box-shadow:0 0 0 3px rgba(106,167,255,.14) inset;
-      background:rgba(106,167,255,.08);
-    }
+    input::placeholder{color:rgba(107,114,128,.65)}
   </style>
 </head>
 
 <body>
   <header>
-    <div class="wrap">
-      <div class="spacer"></div>
-      <h1>WeatherBot v2</h1>
-      <div class="version">Front Page</div>
-    </div>
+    <h1>Follow the weather</h1>
   </header>
 
   <main>
@@ -226,23 +152,11 @@
           </div>
         </div>
       </div>
-
-      <div class="actions">
-        <button class="primary" id="btnToday">Weather Today</button>
-        <button id="btn7day">7-Day Weather</button>
-      </div>
-
-      <div class="tabs">
-        <div class="tabpill active">Today</div>
-        <div class="tabpill">7-Day Weather</div>
-        <div class="tabpill">Rain / Precip</div>
-        <div class="tabpill">Wind</div>
-      </div>
     </section>
   </main>
 
   <script>
-    // Minimal, optional: mirror inputs into the big CITY display (no fetching yet).
+    // Minimal: mirror inputs into the big CITY display (no fetching yet).
     const locA = document.getElementById("locA");
     const locB = document.getElementById("locB");
     const cityA = document.getElementById("cityA");
