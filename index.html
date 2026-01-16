@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Follow the weather</title>
+
+  <style>
+    /* 
+STYLE INDEX
+.wxbox      → temp box width
+.linkList   → bottom links
+.inputWxRow → input + box row
+*/
+
+    :root{
+      --bg:#f5f6f8;
+      --card:#ffffff;
+      --text:#1a1a1a;
+      --muted:#6b7280;
+      --border:#d1d5db;
+      --spin:#3b82f6;
+      --link:#1d4ed8;
+    }
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    header{
+      padding:26px 16px;
+      display:flex;
+      justify-content:center;
+      border-bottom:1px solid var(--border);
+      background:var(--bg);
+      position:sticky;
+      top:0;
+      z-index:5;
+    }
+    .titleWrap{ display:flex; align-items:center; gap:20px; }
+    header h1{
+      margin:0;
+      font-size:26px;
+      font-weight:900;
+      letter-spacing:.2px;
+      white-space:nowrap;
+    }
+    .icon{ font-size:44px; line-height:1; display:inline-block; }
+    .van{ transform: scaleX(-1); }
+    .car{ transform: scaleX(1); }
+
+    main{
+      padding:28px 14px 44px;
+      max-width:1100px;
+      margin:0 auto;
+    }
+
+    .hero{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:18px;
+      margin-top:8px;
+    }
+
+    .pair{
+      width:100%;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:16px;
+      max-width:760px;
+    }
+    @media (min-width:740px){
+      .pair{ grid-template-columns:1fr 1fr; }
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 4px 12px rgba(0,0,0,.05);
+    }
+
+    .question{
+      font-size:17px;
+      font-weight:700;
+      color:var(--muted);
+      margin:0 0 12px;
+      line-height:1.4;
+    }
+
+    .inputWxRow{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      justify-content:flex-start;
+    }
+
+    input{
+      width:200px;
+      max-width:100%;
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:#f9fafb;
+      color:var(--text);
+      outline:none;
+      font-size:17px;
+    }
+    input::placeholder{ color:rgba(107,114,128,.65); }
+
+    .wxbox{
+      width:158px;
+      min-height:42px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:#fff;
+      font-weight:900;
+      font-size:16px;
+      white-space:nowrap;
+      font-variant-numeric: tabular-nums;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .wxemoji{ font-size:18px; line-height:1; }
+    .hilow{
+      font-size:13px;
+      color:var(--muted);
+      margin-left:6px;
+      font-weight:800;
+    }
+
+    .confirm{
+      margin:10px 0 0;
+      font-size:14px;
+      color:var(--muted);
+      min-height:18px;
+      line-height:1.35;
+    }
+
+    .spinner{
+      width:16px;
+      height:16px;
+      border-radius:50%;
+      border:2px solid rgba(59,130,246,.25);
+      border-top-color:var(--spin);
+      animation:spin .9s linear infinite;
+      display:inline-block;
+    }
+    @keyframes spin{ to{ transform:rotate(360deg);} }
+
+    /* ===== 7-DAY STRIP ===== */
+    .sevenTitle{
+      margin:0 0 10px;
+      font-size:14px;
+      font-weight:700;
+      color:var(--muted);
+    }
+
+    .sevenGrid{
+      display:grid;
+      grid-template-columns: 118px repeat(7, 1fr);
+      gap:6px;
+      align-items:center;
+    }
+
+    .sevenCity{
+      font-size:14px;
+      font-weight:500;
+      color:var(--text);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .sevenDay{
+      font-size:12px;
+      font-weight:700;
+      color:var(--muted);
+      text-align:center;
+      letter-spacing:.2px;
+    }
+
+    .sevenCell{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:2px;
+      min-height:46px;
+      border-radius:10px;
+      border:1px solid rgba(209,213,219,.55);
+      background:rgba(255,255,255,.55);
+      padding:4px 2px;
+    }
+    .sevenIcon{
+      font-size:18px;
+      line-height:1;
+      transform: translateY(1px);
+    }
+    .sevenHi, .sevenLo{
+      font-size:12px;
+      line-height:1.05;
+      font-variant-numeric: tabular-nums;
+      letter-spacing:.1px;
+    }
+    .sevenHi{ font-weight:900; color:var(--text); }
+    .sevenLo{ font-weight:800; color:var(--muted); }
+
+    @media (max-width:420px){
+      .sevenGrid{ grid-template-columns: 98px repeat(7, 1fr); gap:5px; }
+      .sevenCity{ font-size:13px; }
+      .sevenDay{ font-size:11px; }
+      .sevenIcon{ font-size:17px; }
+      .sevenHi, .sevenLo{ font-size:11px; }
+      .sevenCell{ min-height:44px; padding:3px 2px; }
+    }
+    /* ===== /7-DAY STRIP ===== */
+
+    /* Quiet links */
+    .linksWrap{
+      width:100%;
+      max-width:760px;
+      margin-top:16px;
+      padding-top:14px;
+      border-top:1px solid var(--border);
+    }
+    .linksGrid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    @media (min-width:740px){
+      .linksGrid{ grid-template-columns:1fr 1fr; }
+    }
+
+    .linkCard{
+      background:rgba(255,255,255,.55);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+    }
+
+    .linkList{
+      margin:0;
+      padding-left:0;
+      list-style:none;
+    }
+    .linkList li{ margin:6px 0; }
+
+    .linkList a{
+      color:var(--link);
+      text-decoration:none;
+      font-weight:800;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .linkList a:hover{ text-decoration:underline; }
+
+    .linkIcon{
+      font-size:16px;
+      line-height:1;
+      transform: translateY(-0.5px);
+    }
+
+    .hidden{ display:none !important; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="titleWrap">
+      <span class="icon van">🚐</span>
+      <h1>Follow the weather</h1>
+      <span class="icon car">🚙</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="pair">
+
+        <div class="card">
+          <p class="question">What is the closest city you’re leaving from?</p>
+
+          <div class="inputWxRow">
+            <input id="locA" placeholder="Enter city" autocomplete="off" />
+            <div class="wxbox" id="wxA">
+              <span class="wxemoji">—</span>
+              <span class="temp">—</span>
+              <span class="hilow">—</span>
+            </div>
+          </div>
+
+          <p class="confirm" id="confirmA"></p>
+        </div>
+
+        <div class="card">
+          <p class="question">What is the closest city you’re going to?</p>
+
+          <div class="inputWxRow">
+            <input id="locB" placeholder="Enter city" autocomplete="off" />
+            <div class="wxbox" id="wxB">
+              <span class="wxemoji">—</span>
+              <span class="temp">—</span>
+              <span class="hilow">—</span>
+            </div>
+          </div>
+
+          <p class="confirm" id="confirmB"></p>
+        </div>
+
+        <!-- 7-day strip card -->
+        <div class="card" style="grid-column:1 / -1;">
+          <p class="sevenTitle">7-day at a glance</p>
+
+          <div class="sevenGrid" aria-label="7-day comparison grid">
+            <!-- header row -->
+            <div></div>
+            <div class="sevenDay" id="day0">—</div>
+            <div class="sevenDay" id="day1">—</div>
+            <div class="sevenDay" id="day2">—</div>
+            <div class="sevenDay" id="day3">—</div>
+            <div class="sevenDay" id="day4">—</div>
+            <div class="sevenDay" id="day5">—</div>
+            <div class="sevenDay" id="day6">—</div>
+
+            <!-- City A row -->
+            <div class="sevenCity" id="cityLabelA">—</div>
+            <div class="sevenCell"><div class="sevenIcon" id="aI0">—</div><div class="sevenHi" id="aH0">—</div><div class="sevenLo" id="aL0">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="aI1">—</div><div class="sevenHi" id="aH1">—</div><div class="sevenLo" id="aL1">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="aI2">—</div><div class="sevenHi" id="aH2">—</div><div class="sevenLo" id="aL2">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="aI3">—</div><div class="sevenHi" id="aH3">—</div><div class="sevenLo" id="aL3">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="aI4">—</div><div class="sevenHi" id="aH4">—</div><div class="sevenLo" id="aL4">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="aI5">—</div><div class="sevenHi" id="aH5">—</div><div class="sevenLo" id="aL5">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="aI6">—</div><div class="sevenHi" id="aH6">—</div><div class="sevenLo" id="aL6">—</div></div>
+
+            <!-- City B row -->
+            <div class="sevenCity" id="cityLabelB">—</div>
+            <div class="sevenCell"><div class="sevenIcon" id="bI0">—</div><div class="sevenHi" id="bH0">—</div><div class="sevenLo" id="bL0">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="bI1">—</div><div class="sevenHi" id="bH1">—</div><div class="sevenLo" id="bL1">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="bI2">—</div><div class="sevenHi" id="bH2">—</div><div class="sevenLo" id="bL2">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="bI3">—</div><div class="sevenHi" id="bH3">—</div><div class="sevenLo" id="bL3">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="bI4">—</div><div class="sevenHi" id="bH4">—</div><div class="sevenLo" id="bL4">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="bI5">—</div><div class="sevenHi" id="bH5">—</div><div class="sevenLo" id="bL5">—</div></div>
+            <div class="sevenCell"><div class="sevenIcon" id="bI6">—</div><div class="sevenHi" id="bH6">—</div><div class="sevenLo" id="bL6">—</div></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="linksWrap hidden" id="linksWrap">
+        <!-- EXPLICIT INSTRUCTIONS (Android Chrome): these links open a new tab -->
+        <div id="linkNoteWrap" style="display:flex; align-items:flex-start; gap:10px; margin:0 0 10px;">
+          <p id="linkNote" style="margin:0; color:var(--muted); font-size:13px; font-weight:800; line-height:1.35;">
+            These links open in a new tab. If you see “Pop-up blocked,” tap and choose “Allow” (or tap the link again).
+          </p>
+          <button id="noteOk" type="button" style="
+            border:1px solid var(--border);
+            background:#fff;
+            border-radius:10px;
+            padding:6px 10px;
+            font-weight:900;
+            cursor:pointer;
+            white-space:nowrap;
+          ">Got it</button>
+        </div>
+        <!-- /EXPLICIT INSTRUCTIONS -->
+
+        <div class="linksGrid">
+          <div class="linkCard hidden" id="linksA">
+            <ul class="linkList">
+              <!-- restored target="_blank" for clean Back behavior -->
+              <li><a id="packA" href="#" target="_blank" rel="noopener"><span class="linkIcon">🎒</span><span>What to pack for weather in …</span></a></li>
+              <li><a id="doA"   href="#" target="_blank" rel="noopener"><span class="linkIcon">📍</span><span>What to see and do in …</span></a></li>
+            </ul>
+          </div>
+
+          <div class="linkCard hidden" id="linksB">
+            <ul class="linkList">
+              <!-- restored target="_blank" for clean Back behavior -->
+              <li><a id="packB" href="#" target="_blank" rel="noopener"><span class="linkIcon">🎒</span><span>What to pack for weather in …</span></a></li>
+              <li><a id="doB"   href="#" target="_blank" rel="noopener"><span class="linkIcon">📍</span><span>What to see and do in …</span></a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script>
+    const $ = (id)=>document.getElementById(id);
+    const cToF = (c)=> (c * 9/5) + 32;
+
+    // One-time dismiss for the "Pop-up blocked" note
+    const NOTE_KEY = "followWeatherLinkNoteDismissed";
+    function initLinkNote(){
+      const wrap = $("linkNoteWrap");
+      const btn = $("noteOk");
+      if(!wrap || !btn) return;
+
+      const dismissed = localStorage.getItem(NOTE_KEY) === "1";
+      if(dismissed) wrap.classList.add("hidden");
+
+      btn.addEventListener("click", ()=>{
+        localStorage.setItem(NOTE_KEY, "1");
+        wrap.classList.add("hidden");
+      });
+    }
+
+    // Current condition emoji (still based on Open-Meteo weathercode)
+    function wxEmoji(code){
+      if (code === 0) return "☀️";
+      if (code === 1 || code === 2) return "🌤️";
+      if (code === 3) return "☁️";
+      if (code === 45 || code === 48) return "🌫️";
+      if ([51,53,55,56,57].includes(code)) return "🌦️";
+      if ([61,63,65,66,67,80,81,82].includes(code)) return "🌧️";
+      if ([71,73,75,77,85,86].includes(code)) return "🌨️";
+      if ([95,96,99].includes(code)) return "⛈️";
+      return "🌡️";
+    }
+
+    function cityOnly(text){
+      if(!text) return "";
+      return String(text).split(",")[0].trim();
+    }
+
+    function setCityLabel(which, confirmText){
+      const el = (which === "A") ? $("cityLabelA") : $("cityLabelB");
+      if(!el) return;
+      const city = cityOnly(confirmText);
+      el.textContent = city || "—";
+    }
+
+    function set7DayHeader(dates, tz){
+      for(let i=0;i<7;i++){
+        const el = $("day"+i);
+        if(!el) continue;
+        const d = dates?.[i];
+        if(!d){ el.textContent = "—"; continue; }
+        const dt = new Date(d + "T12:00:00");
+        const label = new Intl.DateTimeFormat("en-US", { weekday:"short", timeZone: tz || "UTC" }).format(dt);
+        el.textContent = label; // 3-letter
+      }
+    }
+
+    function clear7DayCells(which){
+      const p = which.toLowerCase();
+      for(let i=0;i<7;i++){
+        const iEl = $(p+"I"+i);
+        const hEl = $(p+"H"+i);
+        const lEl = $(p+"L"+i);
+        if(iEl) iEl.textContent = "—";
+        if(hEl) hEl.textContent = "—";
+        if(lEl) lEl.textContent = "—";
+      }
+    }
+
+    function set7DayTemps(which, daily){
+      const hi = daily?.temperature_2m_max;
+      const lo = daily?.temperature_2m_min;
+      const p = which.toLowerCase();
+
+      if(!Array.isArray(hi) || !Array.isArray(lo) || hi.length < 7 || lo.length < 7){
+        for(let i=0;i<7;i++){
+          const hEl = $(p+"H"+i);
+          const lEl = $(p+"L"+i);
+          if(hEl) hEl.textContent = "—";
+          if(lEl) lEl.textContent = "—";
+        }
+        return;
+      }
+
+      for(let i=0;i<7;i++){
+        const hEl = $(p+"H"+i);
+        const lEl = $(p+"L"+i);
+        if(hEl) hEl.textContent = Math.round(cToF(hi[i])) + "°";
+        if(lEl) lEl.textContent = Math.round(cToF(lo[i])) + "°";
+      }
+    }
+
+    /* ===== Weighted cloud icon (balanced bins) ===== */
+
+    function hourWeight(localHour){
+      // Daytime triangle peaking at 14:00 (2pm). Day window: 8–18.
+      const peak = 14;
+      const span = 6;
+      const w = 1 - Math.min(1, Math.abs(localHour - peak) / span);
+      return Math.max(0, w);
+    }
+
+    // Balanced cloud bins:
+    // <20% ☀️
+    // 20–45% 🌤️  (≈ 1/3 cloud)
+    // 45–70% ⛅  (≈ 2/3 cloud)
+    // 70%+ ☁️
+    function cloudIconBalanced(cloudAvg){
+      if(cloudAvg < 20) return "☀️";
+      if(cloudAvg < 45) return "🌤️";
+      if(cloudAvg < 70) return "⛅";
+      return "☁️";
+    }
+
+    function pickIconWeightedForDay(wx, dayStr){
+      const times = wx?.hourly?.time;
+      const cloud = wx?.hourly?.cloudcover;
+      const pop = wx?.hourly?.precipitation_probability;
+      const wcode = wx?.hourly?.weathercode;
+
+      if(!Array.isArray(times) || !Array.isArray(cloud) || times.length !== cloud.length) return "—";
+
+      let wSum = 0, cloudSum = 0;
+      let popMax = 0;
+      let thunderSeen = false;
+      let snowSeen = false;
+
+      for(let i=0;i<times.length;i++){
+        const t = times[i];
+        if(!t.startsWith(dayStr + "T")) continue;
+
+        const hour = parseInt(t.slice(11,13), 10);
+        if(hour < 8 || hour > 18) continue;
+
+        const w = hourWeight(hour);
+        if(w <= 0) continue;
+
+        wSum += w;
+        cloudSum += (cloud[i] ?? 0) * w;
+
+        const p = Array.isArray(pop) ? (pop[i] ?? 0) : 0;
+        if(p > popMax) popMax = p;
+
+        const code = Array.isArray(wcode) ? wcode[i] : null;
+        if(code != null){
+          if([95,96,99].includes(code)) thunderSeen = true;
+          if([71,73,75,77,85,86].includes(code)) snowSeen = true;
+        }
+      }
+
+      if(wSum <= 0) return "—";
+
+      const cloudAvg = cloudSum / wSum;
+
+      // Simple precip override
+      if(thunderSeen && popMax >= 30) return "⛈️";
+      if(snowSeen && popMax >= 25) return "🌨️";
+      if(popMax >= 45) return "🌧️";
+
+      return cloudIconBalanced(cloudAvg);
+    }
+
+    function set7DayIconsWeighted(which, wx){
+      const p = which.toLowerCase();
+      for(let d=0; d<7; d++){
+        const dayStr = wx?.daily?.time?.[d];
+        const el = $(p+"I"+d);
+        if(!el) continue;
+        el.textContent = dayStr ? pickIconWeightedForDay(wx, dayStr) : "—";
+      }
+    }
+
+    /* ===== /Weighted cloud icon ===== */
+
+    const US_STATE_ABBR = {
+      "ALABAMA":"AL","ALASKA":"AK","ARIZONA":"AZ","ARKANSAS":"AR","CALIFORNIA":"CA",
+      "COLORADO":"CO","CONNECTICUT":"CT","DELAWARE":"DE","FLORIDA":"FL","GEORGIA":"GA",
+      "HAWAII":"HI","IDAHO":"ID","ILLINOIS":"IL","INDIANA":"IN","IOWA":"IA","KANSAS":"KS",
+      "KENTUCKY":"KY","LOUISIANA":"LA","MAINE":"ME","MARYLAND":"MD","MASSACHUSETTS":"MA",
+      "MICHIGAN":"MI","MINNESOTA":"MN","MISSISSIPPI":"MS","MISSOURI":"MO","MONTANA":"MT",
+      "NEBRASKA":"NE","NEVADA":"NV","NEW HAMPSHIRE":"NH","NEW JERSEY":"NJ","NEW MEXICO":"NM",
+      "NEW YORK":"NY","NORTH CAROLINA":"NC","NORTH DAKOTA":"ND","OHIO":"OH","OKLAHOMA":"OK",
+      "OREGON":"OR","PENNSYLVANIA":"PA","RHODE ISLAND":"RI","SOUTH CAROLINA":"SC","SOUTH DAKOTA":"SD",
+      "TENNESSEE":"TN","TEXAS":"TX","UTAH":"UT","VERMONT":"VT","VIRGINIA":"VA","WASHINGTON":"WA",
+      "WEST VIRGINIA":"WV","WISCONSIN":"WI","WYOMING":"WY","DISTRICT OF COLUMBIA":"DC"
+    };
+
+    function toStateAbbr(admin1){
+      const s = (admin1 || "").trim();
+      if(!s) return "";
+      if(s.length === 2 && /^[A-Za-z]{2}$/.test(s)) return s.toUpperCase();
+      const key = s.toUpperCase();
+      return US_STATE_ABBR[key] || s;
+    }
+
+    function formatConfirm(g){
+      const city = (g.name || "").trim();
+      const cc = (g.country_code || "").toUpperCase();
+      const admin1 = (g.admin1 || "").trim();
+
+      if(cc === "US"){
+        const st = toStateAbbr(admin1);
+        return st ? `${city}, ${st}` : city;
+      }
+      if(admin1) return `${city}, ${admin1}`;
+      return city;
+    }
+
+    async function geocodeCity(query){
+      const url = "https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=" + encodeURIComponent(query);
+      const r = await fetch(url);
+      if(!r.ok) throw new Error("Geocoding failed");
+      const j = await r.json();
+      if(!j.results || !j.results.length) throw new Error("City not found");
+
+      let g = j.results[0];
+      const us = j.results.find(x => (x.country_code || "").toUpperCase() === "US");
+      if(us) g = us;
+
+      return { lat:g.latitude, lon:g.longitude, tz:g.timezone || "auto", confirm: formatConfirm(g) };
+    }
+
+    async function fetchWeather(geo){
+      const url =
+        "https://api.open-meteo.com/v1/forecast" +
+        `?latitude=${geo.lat}&longitude=${geo.lon}` +
+        `&timezone=${encodeURIComponent(geo.tz || "auto")}` +
+        `&current=${encodeURIComponent("temperature_2m,weathercode")}` +
+        `&daily=${encodeURIComponent("temperature_2m_max,temperature_2m_min")}` +
+        `&hourly=${encodeURIComponent("cloudcover,precipitation_probability,weathercode")}` +
+        `&forecast_days=7` +
+        "&temperature_unit=celsius";
+      const r = await fetch(url);
+      if(!r.ok) throw new Error("Forecast failed");
+      return await r.json();
+    }
+
+    function setConfirm(which, text){
+      (which === "A" ? $("confirmA") : $("confirmB")).textContent = text || "";
+    }
+
+    function restoreBoxSkeleton(which){
+      const box = (which === "A") ? $("wxA") : $("wxB");
+      box.innerHTML = `
+        <span class="wxemoji">—</span>
+        <span class="temp">—</span>
+        <span class="hilow">—</span>
+      `;
+    }
+
+    function setBox(which, emoji, tempText, hiloText){
+      const box = (which === "A") ? $("wxA") : $("wxB");
+      const e = box.querySelector(".wxemoji");
+      const t = box.querySelector(".temp");
+      const h = box.querySelector(".hilow");
+      if(e) e.textContent = emoji;
+      if(t) t.textContent = tempText;
+      if(h) h.textContent = hiloText;
+    }
+
+    function setSpinner(which){
+      const box = (which === "A") ? $("wxA") : $("wxB");
+      box.innerHTML = `<span class="spinner" aria-label="Loading"></span>`;
+    }
+
+    // ===== Special city link exceptions =====
+    const SPECIAL_CITY_LINKS = {
+      "AJO": {
+        title: "Ajo Old Time Fiddle Contest & Show | Ajo, AZ 85321",
+        url: "https://share.google/RgzWwH24gj6cHSrMp"
+      }
+    };
+    // ===== /Special city link exceptions =====
+
+    function updateLinks(which, confirmText){
+      const city = cityOnly(confirmText);
+      const key = city.trim().toUpperCase();
+      const special = SPECIAL_CITY_LINKS[key] || null;
+
+      const wrap = $("linksWrap");
+      const card = $(which === "A" ? "linksA" : "linksB");
+      const pack = $(which === "A" ? "packA" : "packB");
+      const todo = $(which === "A" ? "doA" : "doB");
+
+      if(!city){
+        card.classList.add("hidden");
+      }else{
+        card.classList.remove("hidden");
+
+        // Pack link stays Google for all cities
+        pack.querySelector("span:last-child").textContent = `What to pack for weather in ${city}`;
+        pack.href = `https://www.google.com/search?q=${encodeURIComponent("what to pack for weather in " + city)}`;
+
+        // "What to see and do" link gets special exception (AJO)
+        if(special){
+          todo.querySelector("span:last-child").textContent = special.title;
+          todo.href = special.url;
+        }else{
+          todo.querySelector("span:last-child").textContent = `What to see and do in ${city}`;
+          todo.href = `https://www.google.com/search?q=${encodeURIComponent("what to see and do in " + city)}`;
+        }
+      }
+
+      const anyVisible = !($("linksA").classList.contains("hidden") && $("linksB").classList.contains("hidden"));
+      wrap.classList.toggle("hidden", !anyVisible);
+    }
+
+    function clear(which){
+      restoreBoxSkeleton(which);
+      setBox(which, "—", "—", "—");
+      setConfirm(which, "");
+      updateLinks(which, "");
+      setCityLabel(which, "");
+      clear7DayCells(which);
+    }
+
+    const CACHE_KEY = "followWeatherCities";
+    function saveCities(){
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        a: $("locA")?.value || "",
+        b: $("locB")?.value || ""
+      }));
+    }
+    function loadCities(){
+      try{
+        const raw = localStorage.getItem(CACHE_KEY);
+        if(!raw) return;
+        const data = JSON.parse(raw);
+        if(typeof data?.a === "string") $("locA").value = data.a;
+        if(typeof data?.b === "string") $("locB").value = data.b;
+      }catch(e){}
+    }
+
+    function wire(which){
+      const input = $(which === "A" ? "locA" : "locB");
+      let timer = null;
+      let lastToken = 0;
+
+      async function run(){
+        const token = ++lastToken;
+        const q = input.value.trim();
+        if(!q){ clear(which); return; }
+
+        saveCities();
+        setConfirm(which, "Finding city…");
+        setSpinner(which);
+
+        try{
+          const geo = await geocodeCity(q);
+          if(token !== lastToken) return;
+
+          setConfirm(which, geo.confirm);
+          updateLinks(which, geo.confirm);
+          setCityLabel(which, geo.confirm);
+
+          setSpinner(which);
+
+          const wx = await fetchWeather(geo);
+          if(token !== lastToken) return;
+
+          const cur = wx.current;
+          const hi0 = wx.daily.temperature_2m_max?.[0];
+          const lo0 = wx.daily.temperature_2m_min?.[0];
+          if(cur?.temperature_2m == null || hi0 == null || lo0 == null) throw new Error("Weather data incomplete");
+
+          const tempF = Math.round(cToF(cur.temperature_2m));
+          const hiF = Math.round(cToF(hi0));
+          const loF = Math.round(cToF(lo0));
+
+          restoreBoxSkeleton(which);
+          setBox(which, wxEmoji(cur.weathercode), `${tempF}°F`, `H ${hiF}° L ${loF}°`);
+
+          // 7-day strip fill
+          set7DayHeader(wx.daily?.time, geo.tz);
+          set7DayIconsWeighted(which, wx);
+          set7DayTemps(which, wx.daily);
+
+        }catch(e){
+          restoreBoxSkeleton(which);
+          setBox(which, "—", "—", "—");
+          setConfirm(which, "Could not resolve that city.");
+          updateLinks(which, "");
+          setCityLabel(which, "");
+          clear7DayCells(which);
+        }
+      }
+
+      function debounce(){
+        if(timer) clearTimeout(timer);
+        timer = setTimeout(run, 550);
+      }
+
+      input.addEventListener("input", debounce);
+      input.addEventListener("change", run);
+      input.addEventListener("keydown", (ev)=>{
+        if(ev.key === "Enter"){
+          ev.preventDefault();
+          run();
+          input.blur();
+        }
+      });
+
+      return { run };
+    }
+
+    // boot
+    loadCities();
+    initLinkNote();
+    const a = wire("A");
+    const b = wire("B");
+    if($("locA").value.trim()) a.run();
+    if($("locB").value.trim()) b.run();
+  </script>
+</body>
+</html>
