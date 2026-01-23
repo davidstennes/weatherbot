@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Follow the weather</title>
+
+  <style>
+    :root{
+      --bg:#f5f6f8;
+      --card:#ffffff;
+      --text:#1a1a1a;
+      --muted:#6b7280;
+      --border:#d1d5db;
+      --spin:#3b82f6;
+      --link:#1d4ed8;
+
+      /* Wind icon (static data-URI SVG) */
+      --wind100: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20256%20256%27%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%231e40af%27%20stroke-width%3D%2710%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27m118.2%2C56.9c-3.4%2C1%20-7%2C2.5%20-8.6%2C3.6c-1.2%2C0.8%20-1.2%2C1%201.3%2C4.5c1.4%2C2%202.6%2C3.8%202.7%2C3.8c0.1%2C0.1%202%2C-0.5%204.2%2C-1.4c11.4%2C-4.6%2021.8%2C1.1%2021.9%2C11.9c0%2C5.8%20-4.1%2C11.3%20-10%2C13.8c-1.9%2C0.8%20-8.2%2C0.9%20-46.6%2C0.9l-44.2%2C0l0%2C4.9l0%2C4.9l46%2C-0.1l45.9%2C-0.2l3.7%2C-1.8c4.8%2C-2.3%2010.6%2C-8.2%2013%2C-13c1.6%2C-3.3%201.8%2C-4.2%201.8%2C-9.8c-0.1%2C-5.5%20-0.2%2C-6.5%20-1.8%2C-9.8c-4.1%2C-8.5%20-12.4%2C-13.3%20-22.5%2C-13.2c-2.2%2C0.2%20-5.2%2C0.6%20-6.8%2C1z%27/%3E%3Cpath%20transform%3D%27translate(0%2C-5)%27%20d%3D%27m10%2C137.8l0%2C4.9l105.3%2C0c104.6%2C0%20105.3%2C0%20107.9%2C1.2c3.1%2C1.5%208.2%2C6.8%2010%2C10.3c6.4%2C12.5%201.9%2C26.7%20-10.5%2C33.3c-3.3%2C1.8%20-4.6%2C2.2%20-9.2%2C2.3c-4.8%2C0.2%20-5.7%2C0.1%20-9.1%2C-1.4c-2.2%2C-1%20-4%2C-1.5%20-4.3%2C-1.2c-0.2%2C0.3%20-1.5%2C2%20-2.8%2C3.9c-2.5%2C3.6%20-2.6%2C3.4%201.5%2C5.5c5.9%2C3.1%2014.8%2C4%2021.8%2C2.2c12.9%2C-3.4%2023.2%2C-15.3%2025%2C-28.6c0.6%2C-4.4%200.5%2C-6%20-0.3%2C-10.1c-2.2%2C-10.9%20-9.2%2C-20.7%20-18%2C-25l-4.3%2C-2.1l-106.4%2C0l-106.6%2C-0.1l0%2C4.9z%27/%3E%3Cpath%20d%3D%27m53.7%2C156.9l0%2C4.9l58.7%2C0l58.6%2C0l2%2C1.4c3.1%2C2.1%205.1%2C6.7%205.2%2C11.7c0.1%2C3.6%20-0.1%2C4.3%20-1.8%2C6.3c-3%2C3.6%20-5.5%2C4.7%20-9.8%2C4.4c-2.2%2C-0.2%20-4.7%2C-1%20-6.3%2C-1.8l-2.7%2C-1.5l-3.1%2C3.4c-1.7%2C1.9%20-3.1%2C3.6%20-3.1%2C3.8c0%2C0.2%201.2%2C1.1%202.6%2C2c6.1%2C4%2016%2C5%2022%2C2.2c6.5%2C-3%2011.4%2C-9.8%2012.1%2C-16.6c0.4%2C-3.8%20-1%2C-10.3%20-3%2C-14.3c-1.7%2C-3.3%20-5.7%2C-7.6%20-8.9%2C-9.2l-2.5%2C-1.4l-60.1%2C-0.2l-59.9%2C0l0%2C4.9z%27/%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    header{
+      padding:26px 16px;
+      display:flex;
+      justify-content:center;
+      border-bottom:1px solid var(--border);
+      background:var(--bg);
+      position:sticky;
+      top:0;
+      z-index:5;
+    }
+    .titleWrap{ display:flex; align-items:center; gap:20px; }
+    header h1{
+      margin:0;
+      font-size:26px;
+      font-weight:900;
+      letter-spacing:.2px;
+      white-space:nowrap;
+    }
+    .icon{ font-size:44px; line-height:1; display:inline-block; }
+    .van{ transform: scaleX(-1); }
+    .car{ transform: scaleX(1); }
+
+    main{
+      padding:22px 14px 44px;
+      max-width:1100px;
+      margin:0 auto;
+      display:flex;
+      justify-content:center;
+    }
+
+    .card{
+      width:100%;
+      max-width:760px;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 4px 12px rgba(0,0,0,.05);
+    }
+
+    .titleRow{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+    .sevenTitle{
+      margin:0;
+      font-size:14px;
+      font-weight:800;
+      color:var(--muted);
+    }
+    .hint{
+      margin:0;
+      font-size:12px;
+      font-weight:800;
+      color:rgba(107,114,128,.8);
+      text-align:right;
+    }
+
+    /* ===== 4-DAY GRID ===== */
+    .grid{
+      display:grid;
+      grid-template-columns: 220px repeat(4, 1fr);
+      gap:8px;
+      align-items:stretch;
+    }
+
+    .dayHead{
+      font-size:12px;
+      font-weight:800;
+      color:var(--muted);
+      text-align:center;
+      letter-spacing:.2px;
+      padding-top:6px;
+    }
+
+    .rowLeft{
+      border-radius:14px;
+      border:1px solid rgba(209,213,219,.65);
+      background:rgba(255,255,255,.55);
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-height:82px;
+    }
+
+    .cityTopLine{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    input{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:#f9fafb;
+      color:var(--text);
+      outline:none;
+      font-size:16px;
+      font-weight:800;
+    }
+    input::placeholder{ color:rgba(107,114,128,.65); }
+
+    .miniWx{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(209,213,219,.75);
+      background:#fff;
+      font-weight:900;
+      font-variant-numeric: tabular-nums;
+      white-space:nowrap;
+      position:relative;
+      min-width:120px;
+    }
+
+    /* wind above mini icon */
+    .miniWx::before{
+      content:"";
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
+      top:4px;
+      width:14px;
+      height:14px;
+      background-image:var(--wind100);
+      background-repeat:no-repeat;
+      background-size:contain;
+      pointer-events:none;
+      opacity:.95;
+    }
+    .miniWx{ padding-top:22px; }
+    .miniEmoji{ font-size:18px; line-height:1; transform: translateY(1px); }
+    .miniTemp{ font-size:16px; }
+    .miniHiLo{
+      font-size:12px;
+      font-weight:900;
+      color:var(--muted);
+      margin-left:4px;
+    }
+
+    .cityName{
+      font-size:15px;
+      font-weight:900;
+      line-height:1.1;
+    }
+    .cityConfirm{
+      font-size:12px;
+      font-weight:800;
+      color:var(--muted);
+      line-height:1.2;
+      min-height:14px;
+    }
+
+    .cell{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:2px;
+      min-height:72px;
+      border-radius:14px;
+      border:1px solid rgba(209,213,219,.55);
+      background:rgba(255,255,255,.55);
+      padding:6px 2px;
+    }
+    .iconDay{
+      font-size:20px;
+      line-height:1;
+      transform: translateY(1px);
+      position:relative;
+      padding-top:14px;
+    }
+    .iconDay::before{
+      content:"";
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
+      top:0;
+      width:14px;
+      height:14px;
+      background-image:var(--wind100);
+      background-repeat:no-repeat;
+      background-size:contain;
+      pointer-events:none;
+      opacity:.95;
+    }
+    .hi, .lo{
+      font-size:12px;
+      line-height:1.05;
+      font-variant-numeric: tabular-nums;
+      letter-spacing:.1px;
+    }
+    .hi{ font-weight:900; color:var(--text); }
+    .lo{ font-weight:800; color:var(--muted); }
+
+    .spinner{
+      width:16px;
+      height:16px;
+      border-radius:50%;
+      border:2px solid rgba(59,130,246,.25);
+      border-top-color:var(--spin);
+      animation:spin .9s linear infinite;
+      display:inline-block;
+    }
+    @keyframes spin{ to{ transform:rotate(360deg);} }
+
+    @media (max-width:420px){
+      .grid{ grid-template-columns: 170px repeat(4, 1fr); gap:6px; }
+      .rowLeft{ padding:9px; }
+      .miniWx{ min-width:108px; }
+      .miniTemp{ font-size:15px; }
+      input{ font-size:15px; }
+      .iconDay{ font-size:18px; }
+      .cell{ min-height:68px; }
+    }
+    /* ===== /4-DAY GRID ===== */
+
+    .hidden{ display:none !important; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="titleWrap">
+      <span class="icon van">🚐</span>
+      <h1>Follow the weather</h1>
+      <span class="icon car">🚙</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <div class="titleRow">
+        <p class="sevenTitle">4-day at a glance</p>
+        <p class="hint">Type cities in the left boxes</p>
+      </div>
+
+      <div class="grid" aria-label="4-day comparison grid">
+        <!-- header row -->
+        <div></div>
+        <div class="dayHead" id="day0">—</div>
+        <div class="dayHead" id="day1">—</div>
+        <div class="dayHead" id="day2">—</div>
+        <div class="dayHead" id="day3">—</div>
+
+        <!-- Row A (city input lives HERE) -->
+        <div class="rowLeft">
+          <div class="cityTopLine">
+            <input id="locA" placeholder="Enter city" autocomplete="off" />
+            <div class="miniWx" id="miniA" aria-label="Current weather">
+              <span class="miniEmoji">—</span>
+              <span class="miniTemp">—</span>
+              <span class="miniHiLo">—</span>
+            </div>
+          </div>
+          <div class="cityName" id="cityLabelA">—</div>
+          <div class="cityConfirm" id="confirmA"></div>
+        </div>
+        <div class="cell"><div class="iconDay" id="aI0">—</div><div class="hi" id="aH0">—</div><div class="lo" id="aL0">—</div></div>
+        <div class="cell"><div class="iconDay" id="aI1">—</div><div class="hi" id="aH1">—</div><div class="lo" id="aL1">—</div></div>
+        <div class="cell"><div class="iconDay" id="aI2">—</div><div class="hi" id="aH2">—</div><div class="lo" id="aL2">—</div></div>
+        <div class="cell"><div class="iconDay" id="aI3">—</div><div class="hi" id="aH3">—</div><div class="lo" id="aL3">—</div></div>
+
+        <!-- Row B -->
+        <div class="rowLeft">
+          <div class="cityTopLine">
+            <input id="locB" placeholder="Enter city" autocomplete="off" />
+            <div class="miniWx" id="miniB" aria-label="Current weather">
+              <span class="miniEmoji">—</span>
+              <span class="miniTemp">—</span>
+              <span class="miniHiLo">—</span>
+            </div>
+          </div>
+          <div class="cityName" id="cityLabelB">—</div>
+          <div class="cityConfirm" id="confirmB"></div>
+        </div>
+        <div class="cell"><div class="iconDay" id="bI0">—</div><div class="hi" id="bH0">—</div><div class="lo" id="bL0">—</div></div>
+        <div class="cell"><div class="iconDay" id="bI1">—</div><div class="hi" id="bH1">—</div><div class="lo" id="bL1">—</div></div>
+        <div class="cell"><div class="iconDay" id="bI2">—</div><div class="hi" id="bH2">—</div><div class="lo" id="bL2">—</div></div>
+        <div class="cell"><div class="iconDay" id="bI3">—</div><div class="hi" id="bH3">—</div><div class="lo" id="bL3">—</div></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const $ = (id)=>document.getElementById(id);
+    const cToF = (c)=> (c * 9/5) + 32;
+    const DAYS = 4;
+
+    // ----- current mini box helpers -----
+    function setMini(which, emoji, tempText, hiloText){
+      const box = $(which === "A" ? "miniA" : "miniB");
+      if(!box) return;
+      const e = box.querySelector(".miniEmoji");
+      const t = box.querySelector(".miniTemp");
+      const h = box.querySelector(".miniHiLo");
+      if(e) e.textContent = emoji;
+      if(t) t.textContent = tempText;
+      if(h) h.textContent = hiloText;
+    }
+    function setMiniSpinner(which){
+      const box = $(which === "A" ? "miniA" : "miniB");
+      if(!box) return;
+      box.innerHTML = `<span class="spinner" aria-label="Loading"></span>`;
+    }
+    function restoreMiniSkeleton(which){
+      const box = $(which === "A" ? "miniA" : "miniB");
+      if(!box) return;
+      box.innerHTML = `
+        <span class="miniEmoji">—</span>
+        <span class="miniTemp">—</span>
+        <span class="miniHiLo">—</span>
+      `;
+    }
+
+    // Current condition emoji (Open-Meteo weathercode)
+    function wxEmoji(code){
+      if (code === 0) return "☀️";
+      if (code === 1 || code === 2) return "🌤️";
+      if (code === 3) return "☁️";
+      if (code === 45 || code === 48) return "🌫️";
+      if ([51,53,55,56,57].includes(code)) return "🌦️";
+      if ([61,63,65,66,67,80,81,82].includes(code)) return "🌧️";
+      if ([71,73,75,77,85,86].includes(code)) return "🌨️";
+      if ([95,96,99].includes(code)) return "⛈️";
+      return "🌡️";
+    }
+
+    function cityOnly(text){
+      if(!text) return "";
+      return String(text).split(",")[0].trim();
+    }
+
+    function setCityLabel(which, confirmText){
+      const el = (which === "A") ? $("cityLabelA") : $("cityLabelB");
+      if(!el) return;
+      const city = cityOnly(confirmText);
+      el.textContent = city || "—";
+    }
+
+    function setConfirm(which, text){
+      const el = (which === "A") ? $("confirmA") : $("confirmB");
+      if(el) el.textContent = text || "";
+    }
+
+    function setHeader(dates, tz){
+      for(let i=0;i<DAYS;i++){
+        const el = $("day"+i);
+        if(!el) continue;
+        const d = dates?.[i];
+        if(!d){ el.textContent = "—"; continue; }
+        const dt = new Date(d + "T12:00:00");
+        const label = new Intl.DateTimeFormat("en-US", { weekday:"short", timeZone: tz || "UTC" }).format(dt);
+        el.textContent = label;
+      }
+    }
+
+    function clearCells(which){
+      const p = which.toLowerCase();
+      for(let i=0;i<DAYS;i++){
+        const iEl = $(p+"I"+i);
+        const hEl = $(p+"H"+i);
+        const lEl = $(p+"L"+i);
+        if(iEl) iEl.textContent = "—";
+        if(hEl) hEl.textContent = "—";
+        if(lEl) lEl.textContent = "—";
+      }
+    }
+
+    function setTemps(which, daily){
+      const hi = daily?.temperature_2m_max;
+      const lo = daily?.temperature_2m_min;
+      const p = which.toLowerCase();
+
+      if(!Array.isArray(hi) || !Array.isArray(lo) || hi.length < DAYS || lo.length < DAYS){
+        for(let i=0;i<DAYS;i++){
+          const hEl = $(p+"H"+i);
+          const lEl = $(p+"L"+i);
+          if(hEl) hEl.textContent = "—";
+          if(lEl) lEl.textContent = "—";
+        }
+        return;
+      }
+
+      for(let i=0;i<DAYS;i++){
+        const hEl = $(p+"H"+i);
+        const lEl = $(p+"L"+i);
+        if(hEl) hEl.textContent = Math.round(cToF(hi[i])) + "°";
+        if(lEl) lEl.textContent = Math.round(cToF(lo[i])) + "°";
+      }
+    }
+
+    /* ===== Weighted cloud icon (balanced bins) ===== */
+    function hourWeight(localHour){
+      const peak = 14;
+      const span = 6;
+      const w = 1 - Math.min(1, Math.abs(localHour - peak) / span);
+      return Math.max(0, w);
+    }
+    function cloudIconBalanced(cloudAvg){
+      if(cloudAvg < 20) return "☀️";
+      if(cloudAvg < 45) return "🌤️";
+      if(cloudAvg < 70) return "⛅";
+      return "☁️";
+    }
+    function pickIconWeightedForDay(wx, dayStr){
+      const times = wx?.hourly?.time;
+      const cloud = wx?.hourly?.cloudcover;
+      const pop = wx?.hourly?.precipitation_probability;
+      const wcode = wx?.hourly?.weathercode;
+
+      if(!Array.isArray(times) || !Array.isArray(cloud) || times.length !== cloud.length) return "—";
+
+      let wSum = 0, cloudSum = 0;
+      let popMax = 0;
+      let thunderSeen = false;
+      let snowSeen = false;
+
+      for(let i=0;i<times.length;i++){
+        const t = times[i];
+        if(!t.startsWith(dayStr + "T")) continue;
+
+        const hour = parseInt(t.slice(11,13), 10);
+        if(hour < 8 || hour > 18) continue;
+
+        const w = hourWeight(hour);
+        if(w <= 0) continue;
+
+        wSum += w;
+        cloudSum += (cloud[i] ?? 0) * w;
+
+        const p = Array.isArray(pop) ? (pop[i] ?? 0) : 0;
+        if(p > popMax) popMax = p;
+
+        const code = Array.isArray(wcode) ? wcode[i] : null;
+        if(code != null){
+          if([95,96,99].includes(code)) thunderSeen = true;
+          if([71,73,75,77,85,86].includes(code)) snowSeen = true;
+        }
+      }
+
+      if(wSum <= 0) return "—";
+
+      const cloudAvg = cloudSum / wSum;
+
+      if(thunderSeen && popMax >= 30) return "⛈️";
+      if(snowSeen && popMax >= 25) return "🌨️";
+      if(popMax >= 45) return "🌧️";
+
+      return cloudIconBalanced(cloudAvg);
+    }
+
+    function setIconsWeighted(which, wx){
+      const p = which.toLowerCase();
+      for(let d=0; d<DAYS; d++){
+        const dayStr = wx?.daily?.time?.[d];
+        const el = $(p+"I"+d);
+        if(!el) continue;
+        el.textContent = dayStr ? pickIconWeightedForDay(wx, dayStr) : "—";
+      }
+    }
+    /* ===== /Weighted cloud icon ===== */
+
+    const US_STATE_ABBR = {
+      "ALABAMA":"AL","ALASKA":"AK","ARIZONA":"AZ","ARKANSAS":"AR","CALIFORNIA":"CA",
+      "COLORADO":"CO","CONNECTICUT":"CT","DELAWARE":"DE","FLORIDA":"FL","GEORGIA":"GA",
+      "HAWAII":"HI","IDAHO":"ID","ILLINOIS":"IL","INDIANA":"IN","IOWA":"IA","KANSAS":"KS",
+      "KENTUCKY":"KY","LOUISIANA":"LA","MAINE":"ME","MARYLAND":"MD","MASSACHUSETTS":"MA",
+      "MICHIGAN":"MI","MINNESOTA":"MN","MISSISSIPPI":"MS","MISSOURI":"MO","MONTANA":"MT",
+      "NEBRASKA":"NE","NEVADA":"NV","NEW HAMPSHIRE":"NH","NEW JERSEY":"NJ","NEW MEXICO":"NM",
+      "NEW YORK":"NY","NORTH CAROLINA":"NC","NORTH DAKOTA":"ND","OHIO":"OH","OKLAHOMA":"OK",
+      "OREGON":"OR","PENNSYLVANIA":"PA","RHODE ISLAND":"RI","SOUTH CAROLINA":"SC","SOUTH DAKOTA":"SD",
+      "TENNESSEE":"TN","TEXAS":"TX","UTAH":"UT","VERMONT":"VT","VIRGINIA":"VA","WASHINGTON":"WA",
+      "WEST VIRGINIA":"WV","WISCONSIN":"WI","WYOMING":"WY","DISTRICT OF COLUMBIA":"DC"
+    };
+
+    function toStateAbbr(admin1){
+      const s = (admin1 || "").trim();
+      if(!s) return "";
+      if(s.length === 2 && /^[A-Za-z]{2}$/.test(s)) return s.toUpperCase();
+      const key = s.toUpperCase();
+      return US_STATE_ABBR[key] || s;
+    }
+
+    function formatConfirm(g){
+      const city = (g.name || "").trim();
+      const cc = (g.country_code || "").toUpperCase();
+      const admin1 = (g.admin1 || "").trim();
+
+      if(cc === "US"){
+        const st = toStateAbbr(admin1);
+        return st ? `${city}, ${st}` : city;
+      }
+      if(admin1) return `${city}, ${admin1}`;
+      return city;
+    }
+
+    async function geocodeCity(query){
+      const url = "https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name=" + encodeURIComponent(query);
+      const r = await fetch(url);
+      if(!r.ok) throw new Error("Geocoding failed");
+      const j = await r.json();
+      if(!j.results || !j.results.length) throw new Error("City not found");
+
+      let g = j.results[0];
+      const us = j.results.find(x => (x.country_code || "").toUpperCase() === "US");
+      if(us) g = us;
+
+      return { lat:g.latitude, lon:g.longitude, tz:g.timezone || "auto", confirm: formatConfirm(g) };
+    }
+
+    async function fetchWeather(geo){
+      const url =
+        "https://api.open-meteo.com/v1/forecast" +
+        `?latitude=${geo.lat}&longitude=${geo.lon}` +
+        `&timezone=${encodeURIComponent(geo.tz || "auto")}` +
+        `&current=${encodeURIComponent("temperature_2m,weathercode")}` +
+        `&daily=${encodeURIComponent("temperature_2m_max,temperature_2m_min")}` +
+        `&hourly=${encodeURIComponent("cloudcover,precipitation_probability,weathercode")}` +
+        `&forecast_days=7` +
+        "&temperature_unit=celsius";
+      const r = await fetch(url);
+      if(!r.ok) throw new Error("Forecast failed");
+      return await r.json();
+    }
+
+    // ---- persistence ----
+    const CACHE_KEY = "followWeatherCities_v2_rowsOnly";
+    function saveCities(){
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        a: $("locA")?.value || "",
+        b: $("locB")?.value || ""
+      }));
+    }
+    function loadCities(){
+      try{
+        const raw = localStorage.getItem(CACHE_KEY);
+        if(!raw) return;
+        const data = JSON.parse(raw);
+        if(typeof data?.a === "string") $("locA").value = data.a;
+        if(typeof data?.b === "string") $("locB").value = data.b;
+      }catch(e){}
+    }
+
+    // ---- clear row ----
+    function clear(which){
+      restoreMiniSkeleton(which);
+      setMini(which, "—", "—", "—");
+      setConfirm(which, "");
+      setCityLabel(which, "");
+      clearCells(which);
+    }
+
+    // ---- main wire ----
+    let headerSetOnce = false;
+
+    function wire(which){
+      const input = $(which === "A" ? "locA" : "locB");
+      let timer = null;
+      let lastToken = 0;
+
+      async function run(){
+        const token = ++lastToken;
+        const q = input.value.trim();
+        if(!q){ clear(which); return; }
+
+        saveCities();
+        setConfirm(which, "Finding city…");
+        setCityLabel(which, q); // optimistic label while searching
+        setMiniSpinner(which);
+
+        try{
+          const geo = await geocodeCity(q);
+          if(token !== lastToken) return;
+
+          setConfirm(which, geo.confirm);
+          setCityLabel(which, geo.confirm);
+
+          setMiniSpinner(which);
+
+          const wx = await fetchWeather(geo);
+          if(token !== lastToken) return;
+
+          const cur = wx.current;
+          const hi0 = wx.daily.temperature_2m_max?.[0];
+          const lo0 = wx.daily.temperature_2m_min?.[0];
+          if(cur?.temperature_2m == null || hi0 == null || lo0 == null) throw new Error("Weather data incomplete");
+
+          const tempF = Math.round(cToF(cur.temperature_2m));
+          const hiF = Math.round(cToF(hi0));
+          const loF = Math.round(cToF(lo0));
+
+          restoreMiniSkeleton(which);
+          setMini(which, wxEmoji(cur.weathercode), `${tempF}°F`, `H ${hiF}° L ${loF}°`);
+
+          // Header: keep it stable once it shows up (prevents “jumping” if timezones differ)
+          if(!headerSetOnce){
+            setHeader(wx.daily?.time, geo.tz);
+            headerSetOnce = true;
+          }
+
+          setIconsWeighted(which, wx);
+          setTemps(which, wx.daily);
+
+        }catch(e){
+          restoreMiniSkeleton(which);
+          setMini(which, "—", "—", "—");
+          setConfirm(which, "Could not resolve that city.");
+          setCityLabel(which, "");
+          clearCells(which);
+        }
+      }
+
+      function debounce(){
+        if(timer) clearTimeout(timer);
+        timer = setTimeout(run, 550);
+      }
+
+      input.addEventListener("input", debounce);
+      input.addEventListener("change", run);
+      input.addEventListener("keydown", (ev)=>{
+        if(ev.key === "Enter"){
+          ev.preventDefault();
+          run();
+          input.blur();
+        }
+      });
+
+      return { run };
+    }
+
+    // boot
+    loadCities();
+    const a = wire("A");
+    const b = wire("B");
+    if($("locA").value.trim()) a.run();
+    if($("locB").value.trim()) b.run();
+  </script>
+</body>
+</html>
