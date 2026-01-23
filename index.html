@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Follow the weather</title>
+
+<style>
+:root{
+  --bg:#f5f6f8;
+  --card:#ffffff;
+  --text:#111;
+  --muted:#6b7280;
+  --border:#d1d5db;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+header{
+  padding:20px;
+  border-bottom:1px solid var(--border);
+  text-align:center;
+  background:var(--bg);
+}
+
+header h1{
+  margin:0;
+  font-size:26px;
+  font-weight:900;
+}
+
+main{
+  max-width:1100px;
+  margin:0 auto;
+  padding:16px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:16px;
+}
+
+/* ===== GRID ===== */
+.grid{
+  display:grid;
+  grid-template-columns:160px repeat(4,1fr);
+  gap:10px;
+  align-items:center;
+}
+
+/* LEFT COLUMN LABEL */
+.cityHeader{
+  font-weight:900;
+  font-size:14px;
+}
+
+.cityHeader small{
+  display:block;
+  font-weight:700;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+/* DAYS */
+.day{
+  text-align:center;
+  font-size:13px;
+  font-weight:800;
+  color:var(--muted);
+}
+
+/* FORECAST CELLS */
+.cell{
+  border:1px solid var(--border);
+  border-radius:14px;
+  min-height:76px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+}
+
+/* CITY INPUTS */
+.cityInput{
+  width:100%;
+  padding:12px 14px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  font-size:15px;
+}
+
+/* ADD CITY */
+.addCity{
+  margin-top:12px;
+  padding:12px;
+  border:1px dashed var(--border);
+  border-radius:12px;
+  text-align:center;
+  font-weight:800;
+  color:var(--muted);
+}
+
+/* TITLE OVER FORECAST ONLY */
+.forecastTitle{
+  grid-column:2 / -1;
+  text-align:center;
+  font-weight:900;
+  margin-bottom:4px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Follow the weather</h1>
+</header>
+
+<main>
+  <div class="card">
+
+    <div class="grid">
+
+      <!-- LEFT COLUMN HEADER -->
+      <div class="cityHeader">
+        Enter cities
+        <small>(up to five)</small>
+      </div>
+
+      <!-- FORECAST TITLE -->
+      <div class="forecastTitle">4-day at a glance</div>
+
+      <!-- DAY HEADERS -->
+      <div></div>
+      <div class="day">Thu</div>
+      <div class="day">Fri</div>
+      <div class="day">Sat</div>
+      <div class="day">Sun</div>
+
+      <!-- CITY 1 -->
+      <input class="cityInput" placeholder="City 1 (e.g., Los Angeles)">
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+
+      <!-- CITY 2 -->
+      <input class="cityInput" placeholder="City 2 (e.g., Chicago)">
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+
+      <!-- CITY 3 -->
+      <input class="cityInput" placeholder="City 3 (optional)">
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+
+      <!-- CITY 4 -->
+      <input class="cityInput" placeholder="City 4 (optional)">
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+
+      <!-- CITY 5 -->
+      <input class="cityInput" placeholder="City 5 (optional)">
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+      <div class="cell">—</div>
+
+    </div>
+
+    <div class="addCity">+ Add city</div>
+
+  </div>
+</main>
+
+</body>
+</html>
