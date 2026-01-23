@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Follow the weather</title>
+
+<style>
+:root{
+  --bg:#f5f6f8;
+  --card:#ffffff;
+  --text:#111;
+  --muted:#6b7280;
+  --border:#d1d5db;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+header{
+  padding:20px;
+  border-bottom:1px solid var(--border);
+  text-align:center;
+}
+
+header h1{
+  margin:0;
+  font-size:26px;
+  font-weight:900;
+}
+
+main{
+  max-width:1100px;
+  margin:0 auto;
+  padding:16px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:16px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:160px repeat(4,1fr);
+  gap:10px;
+  align-items:center;
+}
+
+.cityHeader{
+  font-weight:900;
+  font-size:14px;
+}
+
+.cityHeader small{
+  display:block;
+  font-weight:700;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+.forecastTitle{
+  grid-column:2 / -1;
+  text-align:center;
+  font-weight:900;
+  margin-bottom:4px;
+}
+
+.day{
+  text-align:center;
+  font-size:13px;
+  font-weight:800;
+  color:var(--muted);
+}
+
+.cell{
+  border:1px solid var(--border);
+  border-radius:14px;
+  min-height:76px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+}
+
+.cityInput{
+  width:100%;
+  padding:12px 14px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  font-size:15px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Follow the weather</h1>
+</header>
+
+<main>
+<div class="card">
+
+<div class="grid">
+
+  <div class="cityHeader">
+    Enter cities
+    <small>(up to five)</small>
+  </div>
+
+  <div class="forecastTitle">4-day at a glance</div>
+
+  <div></div>
+  <div class="day">Thu</div>
+  <div class="day">Fri</div>
+  <div class="day">Sat</div>
+  <div class="day">Sun</div>
+
+  <!-- CITY 1 -->
+  <input id="city1" class="cityInput" list="citySuggestions"
+         placeholder="City 1 (e.g., Los Angeles)">
+  <div class="cell" id="c1d0">—</div>
+  <div class="cell" id="c1d1">—</div>
+  <div class="cell" id="c1d2">—</div>
+  <div class="cell" id="c1d3">—</div>
+
+  <!-- CITY 2–5 (inactive placeholders) -->
+  <input class="cityInput" placeholder="City 2 (e.g., Chicago)">
+  <div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div>
+
+  <input class="cityInput" placeholder="City 3 (optional)">
+  <div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div>
+
+  <input class="cityInput" placeholder="City 4 (optional)">
+  <div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div>
+
+  <input class="cityInput" placeholder="City 5 (optional)">
+  <div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div>
+
+</div>
+
+</div>
+</main>
+
+<datalist id="citySuggestions"></datalist>
+
+<script>
+const cToF = c => Math.round(c * 9/5 + 32);
+let debounceTimer = null;
+
+async function geocodeSearch(query){
+  const r = await fetch(
+    "https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&name=" +
+    encodeURIComponent(query)
+  );
+  const j = await r.json();
+  return j.results || [];
+}
+
+async function fetchWeather(lat, lon){
+  const r = await fetch(
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&daily=temperature_2m_max,temperature_2m_min&forecast_days=4&timezone=auto`
+  );
+  return await r.json();
+}
+
+const input = document.getElementById("city1");
+const list  = document.getElementById("citySuggestions");
+
+input.addEventListener("input", () => {
+  clearTimeout(debounceTimer);
+  const q = input.value.trim();
+  if(q.length < 3) return;
+
+  debounceTimer = setTimeout(async () => {
+    const results = await geocodeSearch(q);
+    list.innerHTML = "";
+    results.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = `${r.name}${r.admin1 ? ", " + r.admin1 : ""}`;
+      list.appendChild(opt);
+    });
+  }, 300);
+});
+
+input.addEventListener("change", async () => {
+  const q = input.value.trim();
+  if(!q) return;
+
+  try{
+    const results = await geocodeSearch(q);
+    if(!results.length) return;
+
+    const g = results[0];
+    const wx = await fetchWeather(g.latitude, g.longitude);
+
+    for(let i=0;i<4;i++){
+      document.getElementById("c1d"+i).innerHTML =
+        `${cToF(wx.daily.temperature_2m_max[i])}°<br>
+         <small style="color:#6b7280">
+           ${cToF(wx.daily.temperature_2m_min[i])}°
+         </small>`;
+    }
+  }catch(e){
+    alert("Could not load weather for that city.");
+  }
+});
+</script>
+
+</body>
+</html>
