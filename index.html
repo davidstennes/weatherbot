@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>No Bad Days</title>
+
+<style>
+  :root{
+    --bg:#f5f6f8;
+    --card:#ffffff;
+    --border:#d1d5db;
+    --text:#111;
+    --muted:#6b7280;
+    --radius:18px;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+
+  .wrap{
+    max-width:1100px;
+    margin:0 auto;
+    padding:14px 12px 28px;
+  }
+
+  /* LOGO */
+  .brand{
+    display:flex;
+    justify-content:center;
+    padding:12px 0 6px;
+  }
+  .brand img{
+    width:min(820px, 94vw);
+    height:auto;
+    display:block;
+  }
+
+  /* CARD */
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:16px;
+  }
+
+  /* HEADER TEXT */
+  .inputsHeader{
+    text-align:center;
+    margin-bottom:10px;
+  }
+  .inputsHeader .title{
+    font-weight:900;
+    font-size:16px;
+  }
+  .inputsHeader .sub{
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  .forecastTitle{
+    text-align:center;
+    font-weight:900;
+    margin:8px 0 10px;
+  }
+
+  /* GRID */
+  .grid{
+    display:grid;
+    gap:10px;
+    align-items:center;
+  }
+
+  /* CITY COLUMN */
+  .city{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .cityBox{
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:10px 12px;
+    font-size:15px;
+    color:var(--muted);
+  }
+
+  /* DAY LABEL */
+  .day{
+    text-align:center;
+    font-size:13px;
+    font-weight:700;
+    color:var(--muted);
+  }
+
+  /* TILE */
+  .tile{
+    border:1px solid var(--border);
+    border-radius:14px;
+    min-height:86px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#9ca3af;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  /* RESPONSIVE */
+  @media (orientation:portrait){
+    .grid{ grid-template-columns:180px repeat(3,1fr); }
+  }
+  @media (orientation:landscape){
+    .grid{ grid-template-columns:180px repeat(7,1fr); }
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <!-- LOGO -->
+  <div class="brand">
+    <img src="no-bad-days-logo.png" alt="No Bad Days">
+  </div>
+
+  <!-- CARD -->
+  <div class="card">
+
+    <div class="inputsHeader">
+      <div class="title">Enter cities</div>
+      <div class="sub">(up to five)</div>
+    </div>
+
+    <div class="forecastTitle">7-day at a glance</div>
+
+    <div class="grid">
+
+      <!-- HEADER ROW -->
+      <div></div>
+      <div class="day">Sat</div>
+      <div class="day">Sun</div>
+      <div class="day">Mon</div>
+      <div class="day">Tue</div>
+      <div class="day">Wed</div>
+      <div class="day">Thu</div>
+      <div class="day">Fri</div>
+
+      <!-- CITY 1 -->
+      <div class="city">
+        <div class="cityBox">City 1</div>
+      </div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+
+      <!-- CITY 2 -->
+      <div class="city">
+        <div class="cityBox">City 2 (optional)</div>
+      </div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+
+      <!-- CITY 3 -->
+      <div class="city">
+        <div class="cityBox">City 3 (optional)</div>
+      </div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+      <div class="tile">—</div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
