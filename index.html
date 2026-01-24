@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>No Bad Days</title>
+
+<style>
+:root{
+  --bg:#f5f6f8;
+  --card:#ffffff;
+  --text:#111;
+  --muted:#6b7280;
+  --border:#d1d5db;
+
+  --wind-calm:#cbd5e1;
+  --wind-breezy:#3b82f6;
+  --wind-strong:#0b3c8a;
+
+  --gust:#dc2626;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+header{
+  padding:18px 16px 8px;
+  text-align:center;
+}
+
+.hero{
+  max-width:1100px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:60px 1fr 60px;
+  align-items:center;
+}
+.hero .emoji{
+  font-size:28px;
+  opacity:.9;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.hero h1{
+  margin:0;
+  font-size:28px;
+  font-weight:900;
+}
+.hero p{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:14px;
+  font-style:italic;
+}
+
+main{
+  max-width:1100px;
+  margin:0 auto;
+  padding:12px 12px 24px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:14px;
+}
+
+/* headers */
+.inputsHeader{text-align:center;margin-bottom:6px;}
+.inputsHeader .title{font-weight:900;}
+.inputsHeader .sub{color:var(--muted);font-size:12px;}
+
+.forecastTitleRow{
+  display:grid;
+  grid-template-columns:180px 1fr;
+  align-items:center;
+  margin:8px 0 6px;
+}
+.forecastTitle{
+  text-align:center;
+  font-weight:900;
+}
+
+/* grid */
+.grid{display:grid;gap:10px;align-items:center;}
+
+.cityWrap{display:flex;flex-direction:column;gap:4px;}
+.cityInput{
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  font-size:15px;
+}
+.cityConfirm,.cityLink{
+  text-align:center;
+  font-size:12px;
+  min-height:14px;
+  color:var(--muted);
+}
+.cityLink a{color:#2563eb;text-decoration:none;}
+.cityLink a:hover{text-decoration:underline;}
+
+.day{
+  text-align:center;
+  font-size:13px;
+  font-weight:800;
+  color:var(--muted);
+}
+
+.cell{
+  border:1px solid var(--border);
+  border-radius:14px;
+  min-height:86px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  position:relative;
+}
+
+.wxIcon{font-size:22px;line-height:1;}
+
+.windRow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+}
+.windIcon svg{width:18px;height:18px;}
+.windNum{font-size:11px;color:var(--muted);}
+
+.gustTri{
+  width:0;height:0;
+  border-left:5px solid transparent;
+  border-right:5px solid transparent;
+  border-bottom:9px solid var(--gust);
+}
+
+.hi{font-weight:900;}
+.lo{font-size:12px;color:var(--muted);}
+
+.sampleStamp{
+  position:absolute;
+  inset:-30% -30%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transform:rotate(-20deg);
+  font-weight:900;
+  letter-spacing:.08em;
+  color:#9ca3af;
+  opacity:.25;
+  pointer-events:none;
+  text-transform:uppercase;
+  font-size:14px;
+}
+
+/* legend */
+.legend{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-top:10px;
+  color:var(--muted);
+  font-size:12px;
+}
+.legend .item{display:flex;align-items:center;gap:6px;}
+.legend .dot{font-size:14px;}
+.legend .tri{
+  width:0;height:0;
+  border-left:6px solid transparent;
+  border-right:6px solid transparent;
+  border-bottom:10px solid var(--gust);
+}
+
+/* responsive */
+@media (orientation:portrait){
+  .grid{grid-template-columns:180px repeat(3,1fr);}
+}
+@media (orientation:landscape){
+  .grid{grid-template-columns:180px repeat(7,1fr);}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="hero">
+    <div class="emoji">🌴</div>
+    <div>
+      <h1>No Bad Days</h1>
+      <p>“Check the weather before you go.”</p>
+    </div>
+    <div class="emoji">⛷️</div>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="inputsHeader">
+      <div class="title">Enter cities</div>
+      <div class="sub">(up to five)</div>
+    </div>
+
+    <div class="forecastTitleRow">
+      <div></div>
+      <div id="title" class="forecastTitle">At a glance</div>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="legend">
+      <div class="item"><span class="dot" style="color:var(--wind-calm)">●</span> Calm ≤ 5 mph</div>
+      <div class="item"><span class="dot" style="color:var(--wind-breezy)">●</span> Breezy 6–15 mph</div>
+      <div class="item"><span class="dot" style="color:var(--wind-strong)">●</span> Strong ≥ 16 mph</div>
+      <div class="item"><span class="tri"></span> Gusty (gusts ≥ 1.8× sustained)</div>
+    </div>
+  </div>
+</main>
+
+<datalist id="cities"></datalist>
+
+<!-- ======================= SCRIPT ======================= -->
+<script>
+/* FULL DROP SCRIPT – DAILY ONLY, STRAIGHT OPEN-METEO */
+
+const grid = document.getElementById("grid");
+const title = document.getElementById("title");
+const datalist = document.getElementById("cities");
+
+const mph = v => Math.round(v);
+
+/* wind svg */
+const windSVG = `
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <g fill="currentColor">
+    <path d="m174.8,161.7c0,14.5 11.8,26.2 26.2,26.2s26.2-11.8 26.2-26.2-11.8-26.2-26.2-26.2l-191,0"/>
+    <path d="m193.6,83c0-14.5 11.8-26.2 26.2-26.2s26.2 11.8 26.2 26.2-11.8 26.2-26.2 26.2l-209.8,0"/>
+    <path d="m111.1,180.4c0,10.3 8.4,18.7 18.7,18.7s18.7-8.4 18.7-18.7-8.4-18.7-18.7-18.7l-119.8,0"/>
+  </g>
+</svg>`;
+
+/* icon mapping (WMO codes) */
+function wxIconFromCode(c){
+  if(c===0) return "☀️";
+  if(c===1) return "🌤️";
+  if(c===2) return "⛅";
+  if(c===3) return "☁️";
+  if(c===45||c===48) return "🌫️";
+  if(c>=51&&c<=57) return "🌦️";
+  if((c>=61&&c<=67)||(c>=80&&c<=82)) return "🌧️";
+  if((c>=71&&c<=77)||(c>=85&&c<=86)) return "🌨️";
+  if(c>=95) return "⛈️";
+  return "🌡️";
+}
+
+function windColor(m){
+  const r=getComputedStyle(document.documentElement);
+  if(m<=5) return r.getPropertyValue('--wind-calm');
+  if(m<=15) return r.getPropertyValue('--wind-breezy');
+  return r.getPropertyValue('--wind-strong');
+}
+
+function isGusty(w,g){return g>=w*1.8&&g>=18;}
+
+function daysCount(){
+  return matchMedia("(orientation:landscape)").matches ? 7 : 3;
+}
+
+async function geocode(q){
+  const r=await fetch("https://geocoding-api.open-meteo.com/v1/search?count=6&language=en&name="+encodeURIComponent(q));
+  const j=await r.json();
+  return j.results||[];
+}
+
+async function forecast(lat,lon,days){
+  const r=await fetch(
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`+
+    `&timezone=auto&forecast_days=${days}`+
+    `&temperature_unit=fahrenheit&wind_speed_unit=mph`+
+    `&daily=time,temperature_2m_max,temperature_2m_min,weather_code,wind_speed_10m_max,wind_gusts_10m_max`
+  );
+  return await r.json();
+}
+
+/* build grid */
+let currentN=null, rows=[];
+
+function build(n){
+  grid.innerHTML="";
+  title.textContent=`${n}-day at a glance`;
+
+  grid.appendChild(document.createElement("div"));
+  for(let i=0;i<n;i++){
+    const d=document.createElement("div");
+    d.className="day";
+    d.textContent="—";
+    grid.appendChild(d);
+  }
+
+  rows=[];
+  for(let i=1;i<=5;i++){
+    const cw=document.createElement("div");
+    cw.className="cityWrap";
+    cw.innerHTML=`
+      <input class="cityInput" placeholder="City ${i}" list="cities">
+      <div class="cityConfirm"></div>
+      <div class="cityLink"></div>`;
+    grid.appendChild(cw);
+
+    const cells=[];
+    for(let d=0;d<n;d++){
+      const c=document.createElement("div");
+      c.className="cell";
+      c.innerHTML=`<div class="sampleStamp">${n}-day sample</div>`;
+      grid.appendChild(c);
+      cells.push(c);
+    }
+
+    const input=cw.querySelector("input");
+    input.addEventListener("change",async()=>{
+      const res=await geocode(input.value);
+      if(!res.length) return;
+      const g=res[0];
+      cw.querySelector(".cityConfirm").textContent=`${g.name}, ${g.admin1||""}`;
+      cw.querySelector(".cityLink").innerHTML=`📍 <a target="_blank" href="https://www.google.com/search?q=things+to+do+in+${g.name}">Things to do</a>`;
+      const wx=await forecast(g.latitude,g.longitude,currentN);
+      render(cells,wx);
+    });
+
+    rows.push({cells});
+  }
+}
+
+function render(cells,wx){
+  const days=wx.daily.time;
+  document.querySelectorAll(".day").forEach((d,i)=>{
+    const dt=new Date(days[i]+"T12:00");
+    d.textContent=dt.toLocaleDateString(undefined,{weekday:"short"});
+  });
+
+  for(let i=0;i<cells.length;i++){
+    const icon=wxIconFromCode(wx.daily.weather_code[i]);
+    const w=mph(wx.daily.wind_speed_10m_max[i]);
+    const g=mph(wx.daily.wind_gusts_10m_max[i]);
+    const hi=Math.round(wx.daily.temperature_2m_max[i]);
+    const lo=Math.round(wx.daily.temperature_2m_min[i]);
+
+    cells[i].innerHTML=`
+      <div class="wxIcon">${icon}</div>
+      <div class="windRow">
+        <span class="windIcon" style="color:${windColor(w)}">${windSVG}</span>
+        <span class="windNum">${w}</span>
+        ${isGusty(w,g)?'<span class="gustTri"></span>':""}
+      </div>
+      <div class="hi">${hi}°</div>
+      <div class="lo">${lo}°</div>`;
+  }
+}
+
+/* init */
+currentN=daysCount();
+build(currentN);
+
+window.addEventListener("resize",()=>{
+  const n=daysCount();
+  if(n!==currentN){
+    currentN=n;
+    build(n);
+  }
+});
+</script>
+
+</body>
+</html>
