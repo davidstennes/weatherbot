@@ -17,15 +17,16 @@
     margin:0 auto;
     padding:18px 16px;
     display:grid;
-    grid-template-columns:48px 1fr 48px;
+    grid-template-columns:60px 1fr 60px;
     align-items:center;
   }
 
   .icon{
-    font-size:28px;
+    font-size:30px;
     display:flex;
     align-items:center;
     justify-content:center;
+    line-height:1;
   }
 
   .logo{
@@ -39,6 +40,13 @@
     height:auto;
     display:block;
   }
+
+  .fallback{
+    font-size:28px;
+    font-weight:900;
+    text-align:center;
+    display:none;
+  }
 </style>
 </head>
 
@@ -48,7 +56,11 @@
     <div class="icon">🌴</div>
 
     <div class="logo">
-      <img src="no-bad-days-logo.png" alt="No Bad Days">
+      <!-- CHANGE filename here if needed -->
+      <img src="logo.png"
+           alt="No Bad Days"
+           onerror="this.style.display='none'; document.querySelector('.fallback').style.display='block';">
+      <div class="fallback">No Bad Days</div>
     </div>
 
     <div class="icon">⛷️</div>
