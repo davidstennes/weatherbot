@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WeatherBot</title>
+
+  <style>
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:#fff;color:#111;
+      overflow-x:hidden; /* belt + suspenders */
+    }
+
+    /* HERO (compact) */
+    .wb-hero{padding:1.05rem 1rem 0.65rem;text-align:center;}
+    .wb-hero-row{display:flex;align-items:center;justify-content:center;gap:.65rem;}
+    .wb-title{margin:0;font-size:clamp(1.45rem,4.8vw,2.0rem);font-weight:650;line-height:1.12;max-width:22rem;}
+    .wb-icon{font-size:1.35rem;opacity:.8;user-select:none;}
+    .wb-left{transform:translateY(.07em);} .wb-right{transform:translateY(.03em);}
+    .wb-subtitle{margin-top:.35rem;font-size:.92rem;opacity:.72;}
+
+    .status{
+      text-align:center;
+      margin-top:-0.2rem;
+      font-size:0.88rem;
+      opacity:0.65;
+      min-height:1.1rem;
+      padding:0 1rem;
+    }
+
+    /* =====================
+       RESPONSIVE GRID (no clipping)
+       ===================== */
+    :root{
+      /* These prevent the left column from forcing overflow on mobile */
+      --cityW: min(190px, 46vw);
+      --dayW:  min(86px, 18vw);
+
+      --gap: 10px;
+      --rowGap: 14px;
+
+      --radius: 18px;
+      --border: #e0e0e0;
+    }
+
+    .compare{
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 0.65rem 1.15rem 1.25rem; /* a bit more left padding = no clip */
+      display:flex;
+      flex-direction:column;
+      gap: var(--rowGap);
+    }
+
+    /* Shared grid template for header + rows */
+    .grid{
+      display:grid;
+      grid-template-columns: var(--cityW) var(--dayW) var(--dayW) var(--dayW);
+      gap: var(--gap);
+      justify-content:center;
+      align-items:start;
+      width:100%;
+    }
+
+    /* HEADER ROW (Sat/Sun/Mon once) */
+    .grid-header{
+      margin-top: 2px;
+      margin-bottom: -6px; /* tighten */
+      align-items:center;
+    }
+
+    .header-spacer{ height: 1px; }
+
+    .colhead{
+      text-align:center;
+      font-weight:800;
+      color:#777;
+      font-size: 20px;
+      letter-spacing:-0.01em;
+      user-select:none;
+      padding-top: 2px;
+    }
+
+    .card{
+      border:2px solid var(--border);
+      border-radius: var(--radius);
+      background:#fff;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      color:#555;
+    }
+
+    /* CITY CARD */
+    .city-card{
+      width: var(--cityW);
+      min-height: 86px;
+      padding: 0.55rem 0.55rem 0.5rem;
+      position:relative;
+      justify-content:center;
+      gap:0.1rem;
+      overflow:hidden; /* prevents weird bleed */
+    }
+
+    .city-display{
+      width:100%;
+      padding: 0.25rem 0.5rem;
+      text-align:left;
+      cursor:text;
+      user-select:none;
+    }
+
+    .city-name{
+      font-size: 22px;
+      font-weight: 750;
+      letter-spacing: -0.01em;
+      color:#111;
+      line-height: 1.05;
+      margin:0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .city-subline{
+      font-size: 12px;
+      opacity: 0.62;
+      margin-top: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .city-input{
+      width:100%;
+      border:0;
+      outline:none;
+      font-size:16px;
+      font-weight:700;
+      text-align:left;
+      padding: 0.35rem 0.5rem;
+      border-radius: 14px;
+      background: transparent;
+      color:#111;
+      display:none;
+    }
+    .city-input::placeholder{ color:#777; font-weight:700; }
+
+    .suggestions{
+      position:absolute;
+      left:0; right:0;
+      top: 100%;
+      margin-top: 8px;
+      width: 340px;
+      max-width: calc(100vw - 2rem);
+      border:1px solid #e6e6e6;
+      border-radius:14px;
+      background:#fff;
+      box-shadow:0 10px 30px rgba(0,0,0,0.08);
+      overflow:hidden;
+      display:none;
+      z-index:50;
+    }
+    .suggestions button{
+      width:100%;
+      border:0;
+      background:#fff;
+      padding:0.6rem 0.75rem;
+      text-align:left;
+      font-size:15px;
+      color:#111;
+    }
+    .suggestions button:active{ background:#f5f5f5; }
+    .suggestions .sub{ display:block; font-size:12px; opacity:.65; margin-top:2px; }
+
+    /* DAY CARDS (no day label inside; temps smaller) */
+    .day-card{
+      width: var(--dayW);
+      height: 118px;                 /* a bit shorter */
+      padding: 0.55rem 0.35rem 0.5rem;
+      gap: 0.25rem;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .temps{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap: 0.25rem;
+      color:#111;
+    }
+
+    /* smaller temps */
+    .hi{font-size:1.65rem;font-weight:850;line-height:1;}
+    .lo{font-size:1.25rem;font-weight:800;opacity:.52;line-height:1;}
+
+    @media (max-width: 390px){
+      :root{ --gap: 8px; --rowGap: 12px; }
+      .compare{ padding-left: 1.05rem; padding-right: 1.05rem; }
+      .city-name{ font-size: 20px; }
+      .colhead{ font-size: 19px; }
+      .day-card{ height: 112px; }
+      .hi{ font-size: 1.55rem; }
+      .lo{ font-size: 1.18rem; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="wb-hero">
+    <div class="wb-hero-row">
+      <span class="wb-icon wb-left" aria-hidden="true">🌴</span>
+      <h1 class="wb-title">Where is the weather better?</h1>
+      <span class="wb-icon wb-right" aria-hidden="true">⛷️</span>
+    </div>
+    <div class="wb-subtitle">Compare up to five places side by side.</div>
+  </header>
+
+  <div id="status" class="status"></div>
+
+  <main class="compare">
+    <!-- Header row for day names -->
+    <section class="grid grid-header" aria-label="Day headers">
+      <div class="header-spacer"></div>
+      <div class="colhead" id="head0">—</div>
+      <div class="colhead" id="head1">—</div>
+      <div class="colhead" id="head2">—</div>
+    </section>
+
+    <!-- Rows injected here -->
+    <div id="rows"></div>
+  </main>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const rowsEl = document.getElementById("rows");
+
+    function setStatus(msg){ statusEl.textContent = msg || ""; }
+
+    function fmtWeekday(dateStr){
+      const d = new Date(dateStr + "T12:00:00");
+      return new Intl.DateTimeFormat(undefined,{weekday:"short"}).format(d);
+    }
+    function fmtTemp(n){
+      if(n===null||n===undefined||Number.isNaN(n)) return "—";
+      return Math.round(n) + "°";
+    }
+
+    function setHeaderFromToday(){
+      const now = new Date();
+      for(let i=0;i<3;i++){
+        const d = new Date(now);
+        d.setDate(now.getDate()+i);
+        document.getElementById(`head${i}`).textContent =
+          new Intl.DateTimeFormat(undefined,{weekday:"short"}).format(d);
+      }
+    }
+
+    async function geocodeCities(query){
+      const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
+      url.searchParams.set("name", query);
+      url.searchParams.set("count", "8");
+      url.searchParams.set("language", "en");
+      url.searchParams.set("format", "json");
+      const res = await fetch(url.toString());
+      if(!res.ok) throw new Error("Geocoding failed");
+      const data = await res.json();
+      return data.results || [];
+    }
+
+    async function fetch3DayForecastF(lat, lon){
+      const url = new URL("https://api.open-meteo.com/v1/forecast");
+      url.searchParams.set("latitude", lat);
+      url.searchParams.set("longitude", lon);
+      url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min");
+      url.searchParams.set("temperature_unit", "fahrenheit");
+      url.searchParams.set("timezone", "auto");
+      const res = await fetch(url.toString());
+      if(!res.ok) throw new Error("Forecast failed");
+      return await res.json();
+    }
+
+    function formatSubline(city){
+      const state = city.admin1 || city.admin2 || city.admin3 || "";
+      const country = city.country || "";
+      if(state) return `${city.name}, ${state}`;
+      if(country) return `${city.name}, ${country}`;
+      return city.name;
+    }
+
+    function makeRow(index){
+      const row = document.createElement("section");
+      row.className = "grid";
+      row.setAttribute("aria-label", `City row ${index+1}`);
+
+      // City card
+      const cityCard = document.createElement("div");
+      cityCard.className = "card city-card";
+
+      const display = document.createElement("div");
+      display.className = "city-display";
+
+      const cityName = document.createElement("div");
+      cityName.className = "city-name";
+      cityName.textContent = "Add city";
+
+      const citySub = document.createElement("div");
+      citySub.className = "city-subline";
+      citySub.textContent = "";
+
+      display.appendChild(cityName);
+      display.appendChild(citySub);
+
+      const input = document.createElement("input");
+      input.className = "city-input";
+      input.type = "text";
+      input.placeholder = "Add city";
+      input.autocomplete = "off";
+
+      const sugg = document.createElement("div");
+      sugg.className = "suggestions";
+      sugg.setAttribute("role","listbox");
+
+      cityCard.appendChild(display);
+      cityCard.appendChild(input);
+      cityCard.appendChild(sugg);
+
+      // Day cards (no dow inside)
+      const ids = [];
+      const dayCards = [];
+      for(let i=0;i<3;i++){
+        const d = document.createElement("div");
+        d.className = "card day-card";
+
+        const temps = document.createElement("div");
+        temps.className = "temps";
+
+        const hi = document.createElement("div");
+        hi.className = "hi";
+        hi.id = `hi_${index}_${i}`;
+        hi.textContent = "—";
+
+        const lo = document.createElement("div");
+        lo.className = "lo";
+        lo.id = `lo_${index}_${i}`;
+        lo.textContent = "—";
+
+        temps.appendChild(hi);
+        temps.appendChild(lo);
+        d.appendChild(temps);
+
+        dayCards.push(d);
+        ids.push({hi: hi.id, lo: lo.id});
+      }
+
+      row.appendChild(cityCard);
+      dayCards.forEach(c => row.appendChild(c));
+
+      // Autocomplete behavior
+      let debounceTimer = null;
+      let activeResults = [];
+      let lastQuery = "";
+
+      function showSuggestions(show){
+        sugg.style.display = show ? "block" : "none";
+      }
+
+      function renderSuggestions(results){
+        sugg.innerHTML = "";
+        if(!results.length){ showSuggestions(false); return; }
+
+        results.slice(0,8).forEach(r=>{
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.setAttribute("role","option");
+
+          const primary = `${r.name}${r.admin1 ? ", " + r.admin1 : ""}${r.country ? ", " + r.country : ""}`;
+          const secondary = `(${r.latitude.toFixed(3)}, ${r.longitude.toFixed(3)})`;
+          btn.innerHTML = `${primary}<span class="sub">${secondary}</span>`;
+          btn.addEventListener("click", ()=> selectCity(r));
+          sugg.appendChild(btn);
+        });
+
+        showSuggestions(true);
+      }
+
+      function clearTemps(){
+        for(let i=0;i<3;i++){
+          document.getElementById(`hi_${index}_${i}`).textContent = "—";
+          document.getElementById(`lo_${index}_${i}`).textContent = "—";
+        }
+      }
+
+      async function selectCity(city){
+        cityName.textContent = city.name;
+        citySub.textContent = formatSubline(city);
+
+        input.style.display = "none";
+        display.style.display = "block";
+
+        showSuggestions(false);
+        activeResults = [];
+
+        setStatus("Loading forecast…");
+        clearTemps();
+
+        try{
+          const forecast = await fetch3DayForecastF(city.latitude, city.longitude);
+          const daily = forecast.daily;
+          if(!daily || !daily.time || daily.time.length < 3) throw new Error("Not enough daily data");
+
+          // Also update the global header from forecast dates (most accurate)
+          document.getElementById("head0").textContent = fmtWeekday(daily.time[0]);
+          document.getElementById("head1").textContent = fmtWeekday(daily.time[1]);
+          document.getElementById("head2").textContent = fmtWeekday(daily.time[2]);
+
+          for(let i=0;i<3;i++){
+            document.getElementById(`hi_${index}_${i}`).textContent = fmtTemp(daily.temperature_2m_max[i]);
+            document.getElementById(`lo_${index}_${i}`).textContent = fmtTemp(daily.temperature_2m_min[i]);
+          }
+          setStatus("");
+        }catch(e){
+          console.error(e);
+          setStatus("Couldn’t load forecast for that city.");
+        }
+      }
+
+      function enterEditMode(){
+        display.style.display = "none";
+        input.style.display = "block";
+        input.value = "";
+        input.focus();
+        showSuggestions(false);
+      }
+
+      display.addEventListener("click", enterEditMode);
+
+      document.addEventListener("click", (e)=>{
+        const within = (e.target === input) || sugg.contains(e.target) || display.contains(e.target);
+        if(!within) showSuggestions(false);
+      });
+
+      input.addEventListener("input", ()=>{
+        const q = input.value.trim();
+        if(q.length < 2){
+          showSuggestions(false);
+          setStatus("");
+          return;
+        }
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async ()=>{
+          try{
+            lastQuery = q;
+            const results = await geocodeCities(q);
+            if(input.value.trim() !== lastQuery) return;
+            activeResults = results;
+            renderSuggestions(results);
+          }catch(err){
+            console.error(err);
+            showSuggestions(false);
+            setStatus("Autocomplete unavailable.");
+          }
+        }, 220);
+      });
+
+      input.addEventListener("keydown", (e)=>{
+        if(e.key === "Enter" && activeResults.length){
+          e.preventDefault();
+          selectCity(activeResults[0]);
+        }
+        if(e.key === "Escape"){
+          showSuggestions(false);
+          input.style.display = "none";
+          display.style.display = "block";
+        }
+      });
+
+      return row;
+    }
+
+    // Build 5 rows
+    setHeaderFromToday();
+    for(let i=0;i<5;i++){
+      rowsEl.appendChild(makeRow(i));
+    }
+  </script>
+
+</body>
+</html>
