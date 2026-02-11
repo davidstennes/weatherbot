@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Follow the Weather – Multi-City 4-Day Outlook</title>
+  <meta name="description" content="Quick 4-day weather glance for up to 5 cities using Open-Meteo API – temperatures, wind, gusts & conditions."/>
+
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --text: #111111;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --accent: #3b82f6;
+      --gust-calm: var(--muted);
+      --gust-light: #16a34a;
+      --gust-mod: #f59e0b;
+      --gust-strong: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    header {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 1.5rem auto;
+      padding: 0 1rem;
+    }
+
+    .container {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(140px, 180px) repeat(4, 1fr);
+      gap: 0.75rem;
+      padding: 1.25rem;
+    }
+
+    .header-cell {
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--muted);
+      text-align: center;
+      padding: 0.5rem;
+    }
+
+    .city-label {
+      font-weight: 900;
+      font-size: 1rem;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .city-label small {
+      display: block;
+      font-weight: normal;
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-top: 0.25rem;
+    }
+
+    .day-header {
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--text);
+      text-align: center;
+      padding: 0.75rem 0.5rem;
+      background: #f1f5f9;
+    }
+
+    .city-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      padding: 0.5rem;
+    }
+
+    input.city-input {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      font-size: 1rem;
+      width: 100%;
+    }
+
+    input.city-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+
+    .status {
+      font-size: 0.85rem;
+      color: var(--muted);
+      min-height: 1.2em;
+      text-align: center;
+    }
+
+    .forecast-cell {
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-height: 110px;
+      font-size: 0.95rem;
+      background: #fafafa;
+      transition: background 0.2s;
+    }
+
+    .forecast-cell:hover {
+      background: #f1f5f9;
+    }
+
+    .icon {
+      font-size: 2.1rem;
+    }
+
+    .wind-icon {
+      width: 20px;
+      height: 20px;
+      opacity: 0.7;
+    }
+
+    .gust {
+      font-size: 1.1rem;
+      font-weight: bold;
+      user-select: none;
+    }
+
+    .gust.g0 { color: var(--gust-calm); }
+    .gust.g1 { color: var(--gust-light); }
+    .gust.g2 { color: var(--gust-mod); }
+    .gust.g3 { color: var(--gust-strong); }
+
+    .hi { font-weight: 800; font-size: 1.3rem; }
+    .lo { font-size: 0.9rem; color: var(--muted); }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      .day-header, .forecast-cell {
+        grid-column: 1 / -1;
+      }
+      .city-label {
+        margin-bottom: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Follow the Weather</h1>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="grid">
+
+        <div class="header-cell city-label">
+          City
+          <small>up to 5 – type & select</small>
+        </div>
+
+        <div class="day-header">Day 1</div>
+        <div class="day-header">Day 2</div>
+        <div class="day-header">Day 3</div>
+        <div class="day-header">Day 4</div>
+
+        <!-- Rows added via JS -->
+      </div>
+    </div>
+  </main>
+
+  <datalist id="city-suggestions"></datalist>
+
+  <script>
+    const grid = document.querySelector('.grid');
+    const datalist = document.getElementById('city-suggestions');
+
+    const cToF = c => Math.round(c * 9/5 + 32);
+
+    function getWeatherIcon(code) {
+      const n = Number(code);
+      if (isNaN(n)) return "❓";
+
+      if (n === 0)                        return "☀️";
+      if (n >= 1 && n <= 3)               return n === 1 ? "🌤️" : n === 2 ? "⛅" : "☁️";
+      if (n >= 45 && n <= 48)             return "🌫️";
+      if (n >= 51 && n <= 55)             return "🌧️";
+      if (n >= 56 && n <= 57)             return "🌧️🧊";
+      if (n >= 61 && n <= 65)             return "🌧️";
+      if (n >= 66 && n <= 67)             return "🌧️🧊";
+      if (n >= 71 && n <= 77)             return "❄️";
+      if (n >= 80 && n <= 82)             return "🌦️";
+      if (n >= 85 && n <= 86)             return "🌨️";
+      if (n >= 95 && n <= 99)             return "⛈️";
+      return "🌡️";
+    }
+
+    const windSvg = `<svg class="wind-icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 8h10a3 3 0 1 0-3-3"/>
+      <path d="M2 12h14a3 3 0 1 1-3 3"/>
+      <path d="M4 16h6"/>
+    </svg>`;
+
+    function getGustClass(windMax, gustMax) {
+      const w = Number(windMax);
+      const g = Number(gustMax);
+      if (!isFinite(w) || w <= 0) return "g0";
+      const ratio = g / w;
+      if (ratio < 1.2) return "g0";
+      if (ratio < 1.4) return "g1";
+      if (ratio < 1.7) return "g2";
+      return "g3";
+    }
+
+    async function geocode(query) {
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=8&language=en&format=json`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.results || [];
+      } catch {
+        return [];
+      }
+    }
+
+    async function getForecast(lat, lon) {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=\( {lat}&longitude= \){lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,wind_gusts_10m_max&forecast_days=4&timezone=auto`;
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
+    }
+
+    function createRow(index) {
+      const row = document.createElement('div');
+      row.className = 'city-input-group';
+      row.innerHTML = `
+        <input class="city-input" type="text" placeholder="City \( {index} \){index > 2 ? ' (optional)' : ''}" list="city-suggestions" autocomplete="off">
+        <div class="status"></div>
+      `;
+
+      const input = row.querySelector('input');
+      const status = row.querySelector('.status');
+
+      let debounceTimer;
+
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const q = input.value.trim();
+        if (q.length < 2) {
+          datalist.innerHTML = '';
+          return;
+        }
+
+        debounceTimer = setTimeout(async () => {
+          const places = await geocode(q);
+          datalist.innerHTML = '';
+          places.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = `\( {p.name} \){p.admin1 ? ', ' + p.admin1 : ''}${p.country_code ? ' (' + p.country_code + ')' : ''}`;
+            datalist.appendChild(opt);
+          });
+        }, 350);
+      });
+
+      input.addEventListener('change', async () => {
+        const q = input.value.trim();
+        if (!q) {
+          status.textContent = '';
+          return;
+        }
+
+        status.textContent = 'Searching...';
+        input.disabled = true;
+
+        const places = await geocode(q);
+        if (!places.length) {
+          status.textContent = 'City not found – try again';
+          input.disabled = false;
+          return;
+        }
+
+        const place = places[0];
+        const niceName = `\( {place.name} \){place.admin1 ? ', ' + place.admin1 : ''}`;
+        input.value = niceName;
+        status.textContent = niceName;
+
+        const data = await getForecast(place.latitude, place.longitude);
+        input.disabled = false;
+
+        if (!data?.daily) {
+          status.textContent += ' – forecast unavailable';
+          return;
+        }
+
+        // Update day headers (do once, on first successful load)
+        if (index === 1) {
+          const dayHeaders = grid.querySelectorAll('.day-header');
+          data.daily.time.forEach((dateStr, i) => {
+            const date = new Date(dateStr);
+            dayHeaders[i].textContent = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          });
+        }
+
+        // Fill forecast cells (added later in DOM)
+        const cells = [];
+        for (let d = 0; d < 4; d++) {
+          const cell = document.createElement('div');
+          cell.className = 'forecast-cell';
+          cells.push(cell);
+        }
+
+        data.daily.time.forEach((_, d) => {
+          const wc = data.daily.weather_code[d];
+          const tMax = data.daily.temperature_2m_max[d];
+          const tMin = data.daily.temperature_2m_min[d];
+          const wMax = data.daily.wind_speed_10m_max[d];
+          const gMax = data.daily.wind_gusts_10m_max[d];
+
+          const gustCls = getGustClass(wMax, gMax);
+          const tip = isFinite(wMax) && isFinite(gMax)
+            ? `Wind ${Math.round(wMax)} mph • Gust ${Math.round(gMax)} mph`
+            : 'Wind data n/a';
+
+          cells[d].innerHTML = `
+            <div class="icon" title="WMO code \( {wc}"> \){getWeatherIcon(wc)}</div>
+            <div>${windSvg}</div>
+            <div class="gust \( {gustCls}" title=" \){tip}">▲</div>
+            <div class="hi">${cToF(tMax)}°</div>
+            <div class="lo">${cToF(tMin)}°</div>
+          `;
+        });
+
+        // Insert cells after the input row
+        cells.forEach(cell => grid.appendChild(cell));
+      });
+
+      // Insert row + reserve 4 empty cells initially
+      grid.appendChild(row);
+      for (let i = 0; i < 4; i++) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'forecast-cell';
+        placeholder.textContent = '—';
+        grid.appendChild(placeholder);
+      }
+    }
+
+    // Create 5 rows
+    for (let i = 1; i <= 5; i++) {
+      createRow(i);
+    }
+  </script>
+
+</body>
+</html>
